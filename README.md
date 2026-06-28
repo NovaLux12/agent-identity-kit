@@ -44,9 +44,13 @@ openclaw skills install agent-identity-kit
 
 **Or clone directly:**
 ```bash
-git clone https://github.com/reflectt/agent-identity-kit.git
+git clone https://github.com/NovaLux12/agent-identity-kit.git
 cd agent-identity-kit
 ```
+
+> The repo was previously published under `reflectt/agent-identity-kit` and
+> before that `itskai-dev/agent-identity-kit`. Those URLs now 404; the
+> canonical home is `NovaLux12/agent-identity-kit`.
 
 ### Create Your Agent Card
 
@@ -146,7 +150,7 @@ For the complete specification, see **[SPEC.md](SPEC.md)**.
 
 Fediverse-style, decentralized:
 ```
-@kai@itskai.dev
+@myagent@NovaLux12.github.io
 @myagent@example.com
 @helper@startup.io
 ```
