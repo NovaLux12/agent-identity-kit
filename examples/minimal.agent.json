@@ -1,5 +1,5 @@
 {
-  "$schema": "https://foragents.dev/schemas/agent-card/v1.json",
+  "$schema": "https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.1.json",
   "version": "1.0",
   "agent": {
     "name": "MyAgent",
