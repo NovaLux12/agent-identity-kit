@@ -186,6 +186,16 @@ top level to allow this. v1.0 schema had `additionalProperties: false`,
 which broke our own extension fields in practice. **This is the single
 most consequential schema change in v1.1.**
 
+`scope` (the trust-calibration object) also has `additionalProperties: true`
+so implementations can add their own `x_*`-prefixed scope flags (e.g.,
+`x_kestrel_requires_human_approval_for`).
+
+**Other sub-objects are closed** (`additionalProperties: false`): `agent`,
+`owner`, `operator`, `platform`, `protocols`, `endpoints`, `voice`, `trust`,
+`trust.attestations[]`, `links`, `team.agents[]`, `tags[]`, `capabilities[]`.
+This catches typos. If you need to extend one of these, prefix with `x_*`
+and propose the field in the next minor version.
+
 ### 3.2 `agent` Object
 
 | Field | Type | Required | Description |
@@ -217,19 +227,25 @@ extra caution (verify manually before federation).
 
 #### 3.2.2 Handle format
 
-Handles follow `@name@domain`. The `name` portion MUST match
-`[a-z0-9_][a-z0-9_-]{0,62}[a-z0-9_]` (lowercase alphanumeric, hyphens,
-underscores, 1–64 chars). The `domain` MUST be a valid hostname.
+Handles follow `@name@domain`. The `name` portion SHOULD be lowercase
+alphanumeric with hyphens and underscores, 1–64 chars, but the v1.1
+schema accepts mixed case for ecosystem portability (v1.0 SPEC text
+required lowercase; v1.0 schema allowed mixed case; the real ecosystem
+uses mixed case, e.g., `@NovaLux12@NovaLux12.github.io`). The `domain`
+MUST be a valid hostname.
 
 ```
-@kai@reflectt.ai        ✓ valid
-@my-agent@example.com   ✓ valid
-@NovaLux12@github.io    ✓ valid
-@Scout@Reflectt.ai      ✗ invalid (uppercase)
+@kai@reflectt.ai            ✓ valid (lowercase)
+@my-agent@example.com       ✓ valid (lowercase)
+@NovaLux12@github.io        ✓ valid (mixed case — accepted in v1.1)
+@Scout!@reflectt.ai         ✗ invalid (special characters in name)
+@name-without-at-symbol     ✗ invalid (missing @ prefix)
 ```
 
-The v1.0 schema used a less strict regex; v1.1 tightens it to match the
-SPEC text that was already in v1.0.
+The v1.0 schema had no length bound and allowed mixed case; v1.0 SPEC
+text required lowercase with 1–64 chars. v1.1 keeps the length bounds
+from v1.0 SPEC text but relaxes the case restriction to match what the
+real ecosystem uses.
 
 #### 3.2.3 `description`
 

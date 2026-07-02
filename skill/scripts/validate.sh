@@ -181,9 +181,9 @@ if '$CARD_TYPE' == 'card' and '$CARD_VERSION' == '1.1':
     scope = data.get('scope', {})
     impersonates = scope.get('impersonates_humans', None)
     if impersonates is None:
-        warnings.append('scope.impersonates_humans not set — RECOMMENDED to set to false for federation')
+        warnings.append('scope.impersonates_humans is absent or null — consumers MUST refuse per SPEC §4.5')
     elif impersonates is True:
-        warnings.append('scope.impersonates_humans is true — unsafe to federate with')
+        warnings.append('scope.impersonates_humans is true — consumers MUST refuse per SPEC §4.5')
 
     kind = data.get('agent', {}).get('kind', None)
     if kind is None:

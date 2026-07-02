@@ -34,15 +34,18 @@ Requires Node.js 18+ (uses the built-in `node:test` runner).
 - Card where `autonomous-ai-agent` lacks `owner` → must pass (allowed)
 - Card with `version: "2.0"` → must fail
 - Card where `revoked: true` lacks `revoked_at` → must fail
-- Card with uppercase handle → must fail
+- Card with malformed handle (no `@` prefix) → must fail
+- Card with mixed-case handle → must pass (v1.1 relaxed from v1.0 SPEC text)
 - Card with legacy attestation shape (`by`/`at`/`claim`) → must fail v1.1
+- v1.0 card with no `agent.kind` and no `owner` → must pass (B1 regression)
+- Card with `trust` but no `revoked` field → must pass (B1 regression)
 
 ### Semantic federation checks
 - `trust.revoked: true` cards are flagged for refusal
 - `scope.impersonates_humans: true` cards are flagged for refusal
-- Missing `scope.impersonates_humans` produces a warning
+- Missing or `null` `scope.impersonates_humans` cards are flagged for refusal (per SPEC §4.5; see B2)
 - Missing `agent.kind` produces a warning
-- Well-formed autonomous card passes with zero warnings
+- Well-formed autonomous card passes with zero warnings/refusals
 
 ### Schema metadata
 - v1.1 schema `$id` points at the fork

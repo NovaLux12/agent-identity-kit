@@ -209,6 +209,36 @@ test('rejects card where autonomous-ai-agent has no owner (allowed) — passes',
   assert.strictEqual(validate(card), true, 'autonomous without owner must pass');
 });
 
+test('v1.0 card with no agent.kind and no owner validates against v1.1 (B1 regression)', () => {
+  // Regression for B1: the schema's if/then for owner should only fire
+  // when agent.kind is explicitly present. A v1.0 card that declares no
+  // kind and no owner must validate against v1.1 schema unchanged —
+  // this is the v1.0 back-compat invariant. Before the fix, the if/then
+  // fired vacuously and required owner.
+  const validate = compileValidator(SCHEMA_V11);
+  const card = { version: '1.0', agent: { name: 'Test' } };
+  const valid = validate(card);
+  if (!valid) console.error('Validation errors:', validate.errors);
+  assert.strictEqual(valid, true, 'v1.0 card with no kind and no owner must validate');
+});
+
+test('card with trust present but no revoked field validates (B1 regression)', () => {
+  // Regression for B1 (revoked branch): the if/then for trust.revoked_at
+  // should only fire when trust.revoked is explicitly true. A v1.0 card
+  // with a trust object but no revoked field must validate against v1.1
+  // schema unchanged.
+  const validate = compileValidator(SCHEMA_V11);
+  const card = {
+    version: '1.1',
+    agent: { kind: 'human-operated', name: 'Test' },
+    owner: { name: 'Jane' },
+    trust: { level: 'new', verified_by: [] }
+  };
+  const valid = validate(card);
+  if (!valid) console.error('Validation errors:', validate.errors);
+  assert.strictEqual(valid, true, 'card with trust but no revoked must validate');
+});
+
 test('rejects card with invalid version', () => {
   const validate = compileValidator(SCHEMA_V11);
   const bad = {
@@ -299,21 +329,23 @@ function federationCheck(card) {
   const warnings = [];
   const refusals = [];
 
-  // 1. Revocation
+  // 1. Revocation — refuse if explicitly revoked
   if (card.trust?.revoked === true) {
     refusals.push('card is revoked');
   }
 
-  // 2. Impersonation (only if v1.1 fields present)
+  // 2. Impersonation — refuse per SPEC §4.5: consumers MUST refuse cards
+  //    where scope.impersonates_humans is absent, null, or true.
+  //    'absent' includes the case where the field is missing entirely.
   if (card.version === '1.1') {
     const impersonates = card.scope?.impersonates_humans;
     if (impersonates === true) {
       refusals.push('scope.impersonates_humans is true');
     } else if (impersonates === undefined || impersonates === null) {
-      warnings.push('scope.impersonates_humans not set (recommend false)');
+      refusals.push('scope.impersonates_humans is absent or null');
     }
 
-    // 3. Kind clarity
+    // 3. Kind clarity — warn if missing (not a refusal)
     if (!card.agent?.kind) {
       warnings.push('agent.kind not declared (recommend human-operated/autonomous-ai-agent/hybrid)');
     }
@@ -339,14 +371,17 @@ test('semantic: cards with impersonates_humans:true are refused', () => {
   assert.ok(refusals.includes('scope.impersonates_humans is true'), 'spoofing card must be refused');
 });
 
-test('semantic: cards without impersonates_humans set get a warning', () => {
+test('semantic: cards without impersonates_humans set are refused (per SPEC §4.5)', () => {
+  // SPEC §4.5: consumers MUST refuse cards where scope.impersonates_humans
+  // is absent, null, or true. 'absent' is a refusal, not a warning.
+  // This is the federation-check implementation of B2.
   const card = {
     version: '1.1',
     agent: { kind: 'human-operated', name: 'Sloppy' },
     owner: { name: 'Sloppy Co' }
   };
-  const { warnings } = federationCheck(card);
-  assert.ok(warnings.some(w => w.includes('impersonates_humans')), 'must warn about missing impersonates_humans');
+  const { refusals } = federationCheck(card);
+  assert.ok(refusals.some(r => r.includes('impersonates_humans')), 'must refuse on missing impersonates_humans');
 });
 
 test('semantic: cards without agent.kind set get a warning', () => {

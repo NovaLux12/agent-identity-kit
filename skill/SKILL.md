@@ -120,13 +120,16 @@ agent-identity-kit/
 
 ## Federation checks (v1.1)
 
-Beyond schema validation, consumers SHOULD refuse cards where:
+Per SPEC §4.5, consumers **MUST** refuse cards where:
 
 - `trust.revoked` is `true`
-- `scope.impersonates_humans` is absent or `true`
+- `scope.impersonates_humans` is absent, `null`, or `true`
+
+Consumers SHOULD warn (not refuse) when:
+
 - `agent.kind` is missing AND kind clarity is required
 
-The conformance test suite in `tests/` exercises all three.
+The conformance test suite in `tests/` exercises all of these.
 
 ## Hosting Your Card
 

@@ -440,10 +440,11 @@
   "additionalProperties": true,
   "allOf": [
     {
-      "description": "Conditional: owner is REQUIRED and must be an object (not null) when agent.kind is human-operated or hybrid.",
+      "description": "Conditional: owner is REQUIRED and must be an object (not null) when agent.kind is human-operated or hybrid. Note: requires agent.kind to be explicitly present — if kind is absent, the conditional does not fire and owner is not required. This preserves the v1.0 back-compat invariant that v1.0 cards without kind are valid v1.1 cards.",
       "if": {
         "properties": {
           "agent": {
+            "required": ["kind"],
             "properties": {
               "kind": { "enum": ["human-operated", "hybrid"] }
             }
@@ -471,10 +472,11 @@
       }
     },
     {
-      "description": "Conditional: trust.revoked_at is REQUIRED when trust.revoked is true.",
+      "description": "Conditional: trust.revoked_at is REQUIRED when trust.revoked is true. Note: requires trust.revoked to be explicitly present and set to true — if trust is absent or revoked is missing/false, the conditional does not fire and revoked_at is not required. This preserves the v1.0 back-compat invariant that v1.0 cards without a revoked field are valid v1.1 cards.",
       "if": {
         "properties": {
           "trust": {
+            "required": ["revoked"],
             "properties": { "revoked": { "const": true } }
           }
         }
