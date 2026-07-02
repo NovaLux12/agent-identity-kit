@@ -1,0 +1,47 @@
+name: Conformance Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  conformance:
+    name: agent-identity-kit v1.1 conformance
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        working-directory: tests
+        run: npm ci
+
+      - name: Run conformance suite
+        working-directory: tests
+        run: npm test
+
+      - name: Validate every example via the bash validator (Linux)
+        run: |
+          set -e
+          for f in examples/*.json; do
+            echo "Validating $f..."
+            bash skill/scripts/validate.sh "$f" --strict || {
+              echo "::error::$f failed validation"
+              exit 1
+            }
+          done
+
+      - name: Shellcheck the bash scripts
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: ./skill/scripts
+          additional_files: ""
