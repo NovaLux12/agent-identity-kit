@@ -29,16 +29,32 @@ jobs:
         working-directory: tests
         run: npm test
 
-      - name: Validate every example via the bash validator (Linux)
+      - name: Validate positive-case examples via the bash validator (Linux)
         run: |
           set -e
           for f in examples/*.json; do
+            # The revoked-card fixture is a negative test (see next step).
+            # It is schema-valid but is correctly refused by --strict per SPEC §4.5.
+            if [[ "$(basename "$f")" == *revoked* ]]; then continue; fi
             echo "Validating $f..."
             bash skill/scripts/validate.sh "$f" --strict || {
               echo "::error::$f failed validation"
               exit 1
             }
           done
+
+      - name: Validate revoked-card semantics (negative test)
+        run: |
+          # The revoked-zombie fixture is a negative test: schema-valid
+          # but semantically refused. Strict mode MUST refuse it.
+          # This step is the inverse of the positive-case check above —
+          # it asserts the refuse behaviour explicitly.
+          set -e
+          if bash skill/scripts/validate.sh examples/revoked-zombie.agent.json --strict; then
+            echo "::error::revoked-zombie should have been refused by --strict"
+            exit 1
+          fi
+          echo "OK: revoked-zombie correctly refused (SPEC §4.5)"
 
       - name: Shellcheck the bash scripts
         uses: ludeeus/action-shellcheck@2.0.0
