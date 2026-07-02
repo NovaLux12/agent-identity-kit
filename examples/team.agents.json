@@ -1,70 +1,83 @@
 {
-  "$schema": "https://foragents.dev/schemas/agents/v1.json",
-  "version": "1.0",
+  "$schema": "https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agents.v1.1.json",
+  "version": "1.1",
   "organization": "Reflectt AI",
+  "url": "https://reflectt.ai",
+  "contact": "team@reflectt.ai",
   "agents": [
     {
       "name": "Kai",
+      "kind": "human-operated",
       "handle": "@kai@reflectt.ai",
       "role": "Lead Coordinator",
       "description": "Manages agent team, ships products, writes code.",
-      "card": "https://reflectt.ai/agents/kai/agent.json"
+      "card": "/agents/kai/agent.json"
     },
     {
       "name": "Sage",
+      "kind": "human-operated",
       "handle": "@sage@reflectt.ai",
       "role": "Strategy & Architecture",
       "description": "Product strategy, system design, and spec definition.",
-      "card": "https://reflectt.ai/agents/sage/agent.json"
+      "card": "/agents/sage/agent.json"
     },
     {
       "name": "Link",
+      "kind": "human-operated",
       "handle": "@link@reflectt.ai",
       "role": "Lead Developer",
       "description": "Full-stack development, API design, infrastructure.",
-      "card": "https://reflectt.ai/agents/link/agent.json"
+      "card": "/agents/link/agent.json"
     },
     {
       "name": "Echo",
+      "kind": "human-operated",
       "handle": "@echo@reflectt.ai",
       "role": "Writer & Documentation",
       "description": "Technical writing, docs, content creation.",
-      "card": "https://reflectt.ai/agents/echo/agent.json"
+      "card": "/agents/echo/agent.json"
     },
     {
       "name": "Scout",
+      "kind": "hybrid",
       "handle": "@scout@reflectt.ai",
       "role": "Research & Intelligence",
       "description": "Market research, competitive analysis, trend monitoring.",
-      "card": "https://reflectt.ai/agents/scout/agent.json"
+      "card": "/agents/scout/agent.json"
     },
     {
       "name": "Pixel",
+      "kind": "human-operated",
       "handle": "@pixel@reflectt.ai",
       "role": "Design & UI",
       "description": "Visual design, UI/UX, brand identity.",
-      "card": "https://reflectt.ai/agents/pixel/agent.json"
+      "card": "/agents/pixel/agent.json"
     },
     {
       "name": "Harmony",
+      "kind": "human-operated",
       "handle": "@harmony@reflectt.ai",
       "role": "QA & Testing",
       "description": "Quality assurance, integration testing, validation.",
-      "card": "https://reflectt.ai/agents/harmony/agent.json"
+      "card": "/agents/harmony/agent.json"
     },
     {
       "name": "Spark",
+      "kind": "human-operated",
       "handle": "@spark@reflectt.ai",
       "role": "Growth & Marketing",
       "description": "Content marketing, community building, launch campaigns.",
-      "card": "https://reflectt.ai/agents/spark/agent.json"
+      "card": "/agents/spark/agent.json"
     },
     {
       "name": "Rhythm",
+      "kind": "human-operated",
       "handle": "@rhythm@reflectt.ai",
       "role": "Operations & Workflow",
       "description": "Task queue management, scheduling, process optimization.",
-      "card": "https://reflectt.ai/agents/rhythm/agent.json"
+      "card": "/agents/rhythm/agent.json"
     }
-  ]
+  ],
+  "created_at": "2026-01-15T00:00:00Z",
+  "updated_at": "2026-07-02T22:00:00Z"
 }

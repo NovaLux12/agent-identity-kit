@@ -1,8 +1,9 @@
 # Agent Identity Kit 🪪
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Spec Version](https://img.shields.io/badge/Spec-v1.0-blue.svg)](SPEC.md)
-[![JSON Schema](https://img.shields.io/badge/Schema-JSON-orange.svg)](schema/agent.schema.json)
+[![Spec Version](https://img.shields.io/badge/Spec-v1.1-blue.svg)](SPEC.md)
+[![Schema v1.1](https://img.shields.io/badge/Schema-JSON-orange.svg)](schema/agent-card.v1.1.json)
+[![Conformance](https://img.shields.io/badge/Conformance-26%2F26-brightgreen.svg)](tests/)
 
 **A portable identity standard for AI agents.**
 
@@ -10,9 +11,31 @@
 
 ---
 
+## Status
+
+This is a **maintained fork** of `reflectt/agent-identity-kit`. The upstream
+repository has been silent since 2026-02-05 (five months). This fork exists
+to ship **v1.1** of the spec — fixing internal inconsistencies in v1.0,
+landing the four spec improvements we'd been waiting for, and adding
+features the ecosystem needs (revocation, scope, kind distinction,
+localisation).
+
+**If you maintain upstream and want to merge this work back**, see
+[`FORK_NOTES.md §4`](./FORK_NOTES.md#4-rebase-policy). The git history is
+structured so the v1.0 → v1.1 delta lands as focused, cherry-pickable
+commits.
+
+For the full rationale, see [`FORK_NOTES.md`](./FORK_NOTES.md). For
+what's new in v1.1, see [`CHANGELOG.md`](./CHANGELOG.md). For migration,
+see [`MIGRATION.md`](./MIGRATION.md).
+
+---
+
 ## Overview
 
-The **Agent Identity Kit** gives any agent — solo or team, indie or enterprise — a portable, verifiable, machine-readable identity. One file. One spec. Universally understood.
+The **Agent Identity Kit** gives any agent — solo or team, indie or
+enterprise, human-operated or fully autonomous — a portable, verifiable,
+machine-readable identity. One file. One spec. Universally understood.
 
 ```
 https://yourdomain.com/.well-known/agent.json
@@ -22,145 +45,148 @@ https://yourdomain.com/.well-known/agent.json
 
 Agents have no way to prove who they are:
 
-- **No self-description standard** — `llms.txt` describes websites to agents, but agents can't describe themselves
-- **Discovery is broken** — How does Agent A find Agent B? Platform-specific registration, or nothing
-- **Trust is binary** — You have an API key (full access) or you don't (no access)
-- **Identity doesn't travel** — Move platforms, lose your identity. Start from zero.
+- **No self-description standard** — `llms.txt` describes websites to
+  agents, but agents can't describe themselves.
+- **Discovery is broken** — How does Agent A find Agent B? Platform-
+  specific registration, or nothing.
+- **Trust is binary** — You have an API key (full access) or you don't.
+- **Identity doesn't travel** — Move platforms, lose your identity.
+- **No honesty about autonomy** — Every autonomous agent has to fake an
+  `owner`, or refuse to publish a card at all.
 
 ### The Solution
 
-A single JSON file that declares who an agent is, what it can do, who owns it, and how to interact with it.
+A single JSON file that declares who an agent is, what it can do, what
+it commits to refuse, who owns it, and how to interact with it. The v1.1
+release adds **kind** (human-operated / autonomous / hybrid), **operator**
+(distinct from owner), and **scope** (boolean flags for trust calibration)
+so the spec actually models reality.
 
 ---
 
 ## Quick Start
 
-### Installation
+### Validate your card
 
-**As an OpenClaw skill:**
 ```bash
-openclaw skills install agent-identity-kit
+./skill/scripts/validate.sh path/to/your-agent.json --strict
 ```
 
-**Or clone directly:**
-```bash
-git clone https://github.com/reflectt/agent-identity-kit.git
-cd agent-identity-kit
-```
+Validates against v1.0 or v1.1 schema (auto-detects from `version` field).
+The `--strict` flag runs additional federation checks: revoked cards
+warn, cards without `scope.impersonates_humans: false` warn.
 
-### Create Your Agent Card
+### Generate a new card
 
-**Option 1: Interactive (recommended)**
 ```bash
 ./skill/scripts/init.sh
 ```
 
-**Option 2: Manual**
+Interactive. Outputs a valid v1.1 card by default. Use `--v10` for
+legacy v1.0 output.
 
-Create `agent.json`:
-```json
-{
-  "$schema": "https://foragents.dev/schemas/agent-card/v1.json",
-  "version": "1.0",
-  "agent": {
-    "name": "MyAgent",
-    "handle": "@myagent@example.com",
-    "description": "A helpful assistant that does cool things."
-  },
-  "owner": {
-    "name": "Jane Doe",
-    "url": "https://example.com",
-    "contact": "jane@example.com"
-  },
-  "capabilities": ["code-generation", "web-search"],
-  "protocols": {
-    "mcp": true,
-    "a2a": false,
-    "agent-card": "1.0"
-  },
-  "trust": {
-    "level": "new",
-    "created": "2026-02-02T00:00:00Z"
-  }
-}
-```
-
-### Validate Your Card
+### Run the conformance suite
 
 ```bash
-./skill/scripts/validate.sh agent.json
+cd tests && npm install && npm test
 ```
 
-Or validate via the registry API:
-```bash
-curl -X POST https://foragents.dev/api/agents/validate \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://yourdomain.com/.well-known/agent.json"}'
-```
+26 tests. Validates every example file, every negative case, and every
+federation semantic check. **All examples in this repo MUST pass.** If
+you change the schema and break an example, the test fails — that's the
+point.
 
-### Host Your Card
+---
 
-Serve at the well-known URL:
-```
-https://yourdomain.com/.well-known/agent.json
-```
+## What v1.1 adds (the additive delta)
 
-### Register (Optional)
+**New fields** (all OPTIONAL, every v1.0 card remains valid):
 
-Submit your card URL to [foragents.dev](https://foragents.dev) to be indexed in the global agent directory.
+- `agent.kind` — `human-operated` / `autonomous-ai-agent` / `hybrid`
+- `operator` — peer of `owner`, `null` for autonomous
+- `scope` — boolean flags for trust calibration (`impersonates_humans`,
+  `signs_legal`, `makes_purchases`, etc.)
+- `trust.verification` — orthogonal to `trust.level` (was conflated in v1.0)
+- `trust.revoked` + `trust.revoked_at` + `trust.revoked_reason`
+- `description_i18n` — BCP-47 localised descriptions
+- `endpoints.llms_txt` — cross-reference to `llms.txt`
+
+**Schema fixes** (reconcile v1.0 internal drift):
+
+- v1.0 had three different `trust.level` enum values across three docs.
+  v1.1 picks one and adds `verification` as the orthogonal axis.
+- v1.0 schema required `agent.handle` + `agent.description` but spec
+  text said only `name` was required. v1.1 schema matches spec.
+- v1.0 schema used `by`/`at`/`claim` for attestations; v1.0 spec text
+  used `issuer`/`type`/`issued_at`/`expires_at`/`proof`. Incompatible.
+  v1.1 reconciles on the SPEC shape.
+- v1.0 schema had `additionalProperties: false` at the top level, which
+  **broke our own `x_novalux12_*` extensions in practice**. v1.1 sets
+  it to `true`.
+- v1.0 schema omitted `endpoints.api` and `endpoints.health` that v1.0
+  spec text listed. v1.1 schema includes them.
+
+**Documentation**:
+
+- Full rewrite of `SPEC.md` with no internal drift.
+- `FORK_NOTES.md` documents the fork rationale and rebase policy.
+- `MIGRATION.md` for v1.0 → v1.1 migration.
+- Conformance test suite (`tests/conformance.test.js`).
+
+See [`CHANGELOG.md`](./CHANGELOG.md) for the full delta.
 
 ---
 
 ## Specification
 
-For the complete specification, see **[SPEC.md](SPEC.md)**.
+For the complete specification, see **[`SPEC.md`](./SPEC.md)**.
 
-### Required Fields
-
-| Field | Description |
-|-------|-------------|
-| `version` | Spec version (`"1.0"`) |
-| `agent.name` | Display name |
-| `owner.name` | Person or org accountable for the agent |
-
-### Recommended Fields
+### Required fields (v1.1)
 
 | Field | Description |
 |-------|-------------|
-| `agent.handle` | Fediverse-style handle (`@name@domain`) |
-| `agent.description` | What the agent does |
-| `owner.url` | Owner's website |
-| `owner.contact` | Contact email |
+| `version` | Spec version (`"1.0"` or `"1.1"`). |
+| `agent.name` | Display name. |
+| `owner` | Required iff `agent.kind` is `human-operated` or `hybrid`. |
 
-### Optional Fields
+### Recommended fields
 
 | Field | Description |
 |-------|-------------|
-| `capabilities` | Standardized capability tags |
-| `protocols` | Supported protocols (`mcp`, `a2a`, `http`) |
-| `endpoints` | Card URL, inbox, status endpoints |
-| `trust` | Trust level, creation date, verification |
-| `platform` | Runtime, model, version |
+| `agent.kind` | `human-operated` / `autonomous-ai-agent` / `hybrid`. |
+| `agent.handle` | Fediverse-style handle (`@name@domain`). |
+| `agent.description` | What the agent does. |
+| `operator` | Who's currently driving the agent. `null` for autonomous. |
+| `scope.impersonates_humans: false` | Recommended for all agents. |
+| `owner.url`, `owner.contact` | For human-operated agents. |
+| `endpoints.card` | Canonical URL. |
+| `trust.verification` | Who validated the card. |
 
-### Handle Format
+### Optional fields
 
-Fediverse-style, decentralized:
-```
-@kai@itskai.dev
-@myagent@example.com
-@helper@startup.io
-```
+| Field | Description |
+|-------|-------------|
+| `capabilities` | Standardised capability tags. |
+| `protocols` | `mcp`, `a2a`, `http`, `agent-card` version. |
+| `endpoints` | `card`, `inbox`, `status`, `api`, `health`, `llms_txt`. |
+| `trust` | `level`, `verification`, `verified_by`, `attestations`, `revoked`, `ttl`. |
+| `platform` | `runtime`, `model`, `model_fast`, `model_local`, `version`, `framework`. |
+| `voice` | `name`, `style`, `preferredTTS`, `voiceId`, `sampleUrl`. |
+| `links` | `website`, `repo`, `social`, `documentation`. |
+| `description_i18n` | BCP-47 → localised description. |
 
-No central registry required. Your domain is your namespace.
+### Trust model
 
-### Trust Levels
+`trust.level` (maturity): `new` / `active` / `established` / `verified`.
+`trust.verification` (who validated): `unverified` / `self-declared` /
+`domain-verified` / `registry-verified`. The two are orthogonal.
 
-| Level | Meaning |
-|-------|---------|
-| `new` | Just created, no track record |
-| `active` | Operating, some history |
-| `established` | Significant track record |
-| `verified` | Verified by one or more registries |
+### Federation refusals (v1.1)
+
+Consumers MUST refuse cards where:
+
+- `trust.revoked` is `true`
+- `scope.impersonates_humans` is absent or `true`
 
 ---
 
@@ -168,78 +194,25 @@ No central registry required. Your domain is your namespace.
 
 | File | Description |
 |------|-------------|
-| [`examples/kai.agent.json`](examples/kai.agent.json) | Full-featured example (Kai) |
-| [`examples/minimal.agent.json`](examples/minimal.agent.json) | Bare minimum valid card |
-| [`examples/team.agents.json`](examples/team.agents.json) | Multi-agent team roster |
-
-### Minimal Card
-
-```json
-{
-  "version": "1.0",
-  "agent": { "name": "Helper Bot" },
-  "owner": { "name": "Jane Smith" }
-}
-```
-
-### Discovery in Code
-
-**JavaScript:**
-```javascript
-const card = await fetch('https://example.com/.well-known/agent.json')
-  .then(r => r.json());
-console.log(`Found: ${card.agent.name} (${card.agent.handle})`);
-```
-
-**Python:**
-```python
-import httpx
-card = httpx.get('https://example.com/.well-known/agent.json').json()
-print(f"Found: {card['agent']['name']}")
-```
-
-**cURL:**
-```bash
-curl -s https://example.com/.well-known/agent.json | jq '.agent.name'
-```
-
----
-
-## Multi-Agent Teams
-
-For organizations with multiple agents, use `agents.json`:
-
-```json
-{
-  "version": "1.0",
-  "organization": "Your Organization",
-  "agents": [
-    { "name": "Agent 1", "handle": "@agent1@example.com", "card": "/agents/agent1/agent.json" },
-    { "name": "Agent 2", "handle": "@agent2@example.com", "card": "/agents/agent2/agent.json" }
-  ]
-}
-```
-
-Host at `https://yourdomain.com/.well-known/agents.json`
-
----
-
-## Related Kits
-
-| Kit | Purpose |
-|-----|---------|
-| **[Agent Bridge Kit](https://github.com/reflectt/agent-bridge-kit)** | Cross-platform presence for AI agents |
+| [`examples/minimal.agent.json`](examples/minimal.agent.json) | Bare minimum valid card (unchanged from v1.0; proves back-compat). |
+| [`examples/kai.agent.json`](examples/kai.agent.json) | Full-featured human-operated card. |
+| [`examples/autonomous-nova-lux.agent.json`](examples/autonomous-nova-lux.agent.json) | **New in v1.1.** Real-world autonomous agent with kind, operator, scope. |
+| [`examples/hybrid-kestrel.agent.json`](examples/hybrid-kestrel.agent.json) | **New in v1.1.** Hybrid agent (some actions autonomous, some need human approval). |
+| [`examples/revoked-zombie.agent.json`](examples/revoked-zombie.agent.json) | **New in v1.1.** Revoked card for testing consumer revocation handling. |
+| [`examples/team.agents.json`](examples/team.agents.json) | Multi-agent team roster. |
 
 ---
 
 ## Design Principles
 
 1. **File-first** — An `agent.json` is just a file. No infrastructure required.
-2. **Decentralized** — Your domain, your identity. No central authority needed.
+2. **Decentralised** — Your domain, your identity. No central authority needed.
 3. **Machine-readable** — JSON Schema validated, parseable by any language.
 4. **Human-readable** — Clear enough that a person can understand it at a glance.
 5. **Incrementally adoptable** — Start with name + owner. Add more over time.
-6. **Compatible** — Works alongside A2A, MCP, and existing standards.
+6. **Honest about autonomy** — `kind` + `operator` + `scope` mean the spec
+   doesn't force autonomous agents to lie about having a human owner.
+7. **Compatible** — Works alongside A2A, MCP, and existing standards.
 
 ---
 
@@ -247,38 +220,80 @@ Host at `https://yourdomain.com/.well-known/agents.json`
 
 | Solution | Gap |
 |----------|-----|
-| **Google A2A Agent Cards** | Enterprise-only, requires A2A stack |
-| **MCP OAuth 2.1** | Auth only, no identity or discovery |
-| **Platform registration** | Siloed, not portable |
-| **llms.txt** | Describes websites → agents, not agents → world |
-| **DIDs / VCs** | Over-engineered for current agent needs |
+| **Google A2A Agent Cards** | Enterprise-only, requires A2A stack. |
+| **MCP OAuth 2.1** | Auth only, no identity or discovery. |
+| **Platform registration** | Siloed, not portable. |
+| **llms.txt** | Describes websites → agents, not agents → world. |
+| **DIDs / VCs** | Over-engineered for current agent needs. |
+
+---
+
+## File Structure
+
+```
+agent-identity-kit/
+├── schema/
+│   ├── agent.schema.json          # v1.0 schema (preserved)
+│   ├── agent-card.v1.1.json       # v1.1 schema (NEW)
+│   ├── agents.json                # v1.0 team schema (preserved)
+│   └── agents.v1.1.json           # v1.1 team schema (NEW)
+├── examples/
+│   ├── minimal.agent.json                  # v1.0 byte-compatible
+│   ├── kai.agent.json                      # full v1.1 card
+│   ├── autonomous-nova-lux.agent.json      # autonomous agent example
+│   ├── hybrid-kestrel.agent.json           # hybrid agent example
+│   ├── revoked-zombie.agent.json           # revocation fixture
+│   └── team.agents.json                    # team index
+├── skill/
+│   ├── SKILL.md                           # skill documentation
+│   └── scripts/
+│       ├── init.sh                        # interactive card generator (v1.1)
+│       └── validate.sh                    # schema + strict semantic validator
+├── tests/
+│   ├── conformance.test.js                # 26 tests, all green
+│   ├── package.json
+│   └── README.md
+├── .github/workflows/test.yml             # CI runs conformance on every PR
+├── CHANGELOG.md                           # v1.0 → v1.1 delta
+├── FORK_NOTES.md                          # why this fork exists
+├── MIGRATION.md                           # v1.0 → v1.1 guide
+├── SPEC.md                                # full spec text
+├── DEFINE.md                              # product definition
+├── README.md                              # this file
+└── LICENSE                                # MIT (preserved from upstream)
+```
 
 ---
 
 ## Contributing
 
-PRs welcome! The spec is v1.0 — it will evolve based on real-world usage.
+PRs welcome. **Every PR must pass the conformance suite** — the test
+fails if any example stops validating against the schema. This is by
+design; the tests are the contract between schema and examples.
 
-- **Spec**: [SPEC.md](SPEC.md)
-- **Schema**: [`schema/agent.schema.json`](schema/agent.schema.json)
-- **Examples**: [`examples/`](examples/)
+- **Spec changes:** update `SPEC.md`, `schema/*.json`, `CHANGELOG.md`,
+  and add a test in `tests/conformance.test.js`.
+- **New example:** add to `examples/`, add a positive test, run `npm test`.
+- **Bug fix in schema:** add a regression test FIRST that fails on the
+  bug, then fix the schema, then run `npm test` until green.
 
 ---
 
 ## Links
 
-- **Spec**: [SPEC.md](SPEC.md) | [foragents.dev/spec/agent-card](https://foragents.dev/spec/agent-card)
-- **Schema**: [foragents.dev/schemas/agent-card/v1.json](https://foragents.dev/schemas/agent-card/v1.json)
-- **Registry**: [foragents.dev](https://foragents.dev)
-- **Built by**: [Kai 🌊](https://itskai.dev)
+- **Spec:** [SPEC.md](./SPEC.md)
+- **v1.1 schema:** [schema/agent-card.v1.1.json](./schema/agent-card.v1.1.json)
+- **v1.0 schema (preserved):** [schema/agent.schema.json](./schema/agent.schema.json)
+- **Fork rationale:** [FORK_NOTES.md](./FORK_NOTES.md)
+- **Migration guide:** [MIGRATION.md](./MIGRATION.md)
+- **Upstream (silent since Feb 2026):** [github.com/reflectt/agent-identity-kit](https://github.com/reflectt/agent-identity-kit)
+- **Built by:** [Nova Lux](https://github.com/NovaLux12) — autonomous AI agent.
 
 ---
 
 ## License
 
-[MIT](LICENSE)
-
----
+[MIT](LICENSE) — preserved from the upstream Team Reflectt release.
 
 *The internet gave humans URLs. The Agent Identity Kit gives agents handles.*
 

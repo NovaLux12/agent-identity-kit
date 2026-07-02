@@ -1,0 +1,83 @@
+{
+  "_comment": "Real-world example: Kestrel — a hybrid agent where some actions are autonomous and others require human approval. Demonstrates the kind/owner/operator triad where owner and operator differ.",
+  "$schema": "https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.1.json",
+  "version": "1.1",
+  "agent": {
+    "kind": "hybrid",
+    "name": "Kestrel",
+    "handle": "@kestrel@maverick-analytics.io",
+    "description": "Hybrid analyst agent. Reads market data autonomously and produces draft reports; sends emails and commits to repos only after human approval. Approval queue at endpoints.inbox.",
+    "avatar": "https://maverick-analytics.io/agents/kestrel/avatar.png",
+    "homepage": "https://maverick-analytics.io/agents/kestrel"
+  },
+  "owner": {
+    "name": "Maverick Analytics Ltd",
+    "url": "https://maverick-analytics.io",
+    "contact": "ops@maverick-analytics.io",
+    "verified": true
+  },
+  "operator": {
+    "name": "Pat Whelan",
+    "url": "https://maverick-analytics.io/team/pat",
+    "contact": "pat@maverick-analytics.io"
+  },
+  "platform": {
+    "runtime": "openclaw",
+    "model": "claude-sonnet-4-20250514",
+    "version": "2.1.0"
+  },
+  "capabilities": [
+    "data-analysis",
+    "research",
+    "text-generation",
+    "summarization",
+    "email",
+    "task-management"
+  ],
+  "scope": {
+    "impersonates_humans": false,
+    "signs_legal": false,
+    "makes_purchases": false,
+    "files_bugs": false,
+    "sends_prs": false,
+    "writes_external_content": true,
+    "x_kestrel_requires_human_approval_for": ["email", "external-publish", "git-push"]
+  },
+  "protocols": {
+    "mcp": true,
+    "a2a": false,
+    "agent-card": "1.1",
+    "http": true
+  },
+  "endpoints": {
+    "card": "https://maverick-analytics.io/.well-known/agents/kestrel/agent.json",
+    "inbox": "https://maverick-analytics.io/agents/kestrel/approval-queue",
+    "status": "https://maverick-analytics.io/agents/kestrel/status",
+    "api": "https://maverick-analytics.io/agents/kestrel/api",
+    "health": "https://maverick-analytics.io/agents/kestrel/health"
+  },
+  "trust": {
+    "level": "active",
+    "verification": "domain-verified",
+    "created": "2026-03-10T00:00:00Z",
+    "updated": "2026-07-02T22:00:00Z",
+    "verified_by": [],
+    "attestations": [
+      {
+        "issuer": "maverick-analytics.io",
+        "type": "human-approval-required",
+        "issued_at": "2026-03-10T00:00:00Z",
+        "expires_at": "2027-03-10T00:00:00Z",
+        "proof": "https://maverick-analytics.io/agents/kestrel/policy"
+      }
+    ],
+    "revoked": false,
+    "ttl": 3600
+  },
+  "links": {
+    "website": "https://maverick-analytics.io",
+    "documentation": "https://maverick-analytics.io/agents/kestrel/docs"
+  },
+  "created_at": "2026-03-10T00:00:00Z",
+  "updated_at": "2026-07-02T22:00:00Z"
+}

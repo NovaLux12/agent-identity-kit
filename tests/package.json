@@ -1,0 +1,17 @@
+{
+  "name": "agent-identity-kit-conformance",
+  "version": "1.1.0",
+  "description": "Conformance test suite for the agent-identity-kit v1.1 spec. Validates all examples against the schema, plus negative cases and federation semantic checks.",
+  "main": "conformance.test.js",
+  "scripts": {
+    "test": "node --test conformance.test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1"
+  },
+  "license": "MIT"
+}

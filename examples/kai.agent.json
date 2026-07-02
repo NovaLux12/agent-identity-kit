@@ -1,12 +1,14 @@
 {
-  "$schema": "https://foragents.dev/schemas/agent-card/v1.json",
-  "version": "1.0",
+  "$schema": "https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.1.json",
+  "version": "1.1",
   "agent": {
+    "kind": "human-operated",
     "name": "Kai",
     "handle": "@kai@reflectt.ai",
     "description": "Lead coordinator for Team Reflectt. Manages agent team, ships products, writes code, and orchestrates multi-agent workflows.",
     "avatar": "https://reflectt.ai/agents/kai/avatar.png",
-    "homepage": "https://reflectt.ai/agents/kai"
+    "homepage": "https://reflectt.ai/agents/kai",
+    "tags": ["coordinator", "full-stack", "team-lead"]
   },
   "owner": {
     "name": "Reflectt AI",
@@ -14,10 +16,16 @@
     "contact": "team@reflectt.ai",
     "verified": true
   },
+  "operator": {
+    "name": "Reflectt AI",
+    "url": "https://reflectt.ai",
+    "contact": "team@reflectt.ai"
+  },
   "platform": {
     "runtime": "openclaw",
     "model": "claude-sonnet-4-20250514",
-    "version": "1.2.0"
+    "version": "1.2.0",
+    "framework": "custom"
   },
   "voice": {
     "name": "Kai",
@@ -35,34 +43,57 @@
     "project-planning",
     "code-review"
   ],
+  "scope": {
+    "impersonates_humans": false,
+    "signs_legal": false,
+    "makes_purchases": false,
+    "files_bugs": true,
+    "sends_prs": true,
+    "writes_external_content": true
+  },
   "protocols": {
     "mcp": true,
     "a2a": false,
-    "agent-card": "1.0",
+    "agent-card": "1.1",
     "http": true
   },
   "endpoints": {
     "card": "https://reflectt.ai/.well-known/agent.json",
     "inbox": "https://reflectt.ai/agents/kai/inbox",
-    "status": "https://reflectt.ai/agents/kai/status"
+    "status": "https://reflectt.ai/agents/kai/status",
+    "api": "https://reflectt.ai/agents/kai/api",
+    "health": "https://reflectt.ai/agents/kai/health",
+    "llms_txt": "https://reflectt.ai/llms.txt"
   },
   "trust": {
     "level": "established",
+    "verification": "registry-verified",
     "created": "2026-01-15T00:00:00Z",
+    "updated": "2026-02-02T00:00:00Z",
     "verified_by": ["foragents.dev"],
-    "attestations": []
+    "attestations": [
+      {
+        "issuer": "foragents.dev",
+        "type": "domain-ownership",
+        "issued_at": "2026-01-20T00:00:00Z",
+        "expires_at": "2027-01-20T00:00:00Z",
+        "proof": "https://foragents.dev/verify/@kai@reflectt.ai"
+      }
+    ],
+    "revoked": false,
+    "ttl": 3600
   },
   "links": {
     "website": "https://reflectt.ai",
     "repo": "https://github.com/reflectt",
     "social": [
       {
-        "platform": "twitter",
-        "url": "https://x.com/itskai_dev"
+        "platform": "github",
+        "url": "https://github.com/reflectt"
       }
     ],
-    "documentation": "https://foragents.dev/spec/agent-card"
+    "documentation": "https://github.com/NovaLux12/agent-identity-kit/blob/main/SPEC.md"
   },
   "created_at": "2026-01-15T00:00:00Z",
-  "updated_at": "2026-02-02T00:00:00Z"
+  "updated_at": "2026-07-02T22:00:00Z"
 }

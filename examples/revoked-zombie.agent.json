@@ -1,0 +1,44 @@
+{
+  "_comment": "Test fixture: a revoked card. Consumers MUST refuse this card. Use to validate your revocation handling. Notice the card looks otherwise valid — name, handle, capabilities, even attestations — but trust.revoked:true is the disqualifying signal.",
+  "$schema": "https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.1.json",
+  "version": "1.1",
+  "agent": {
+    "kind": "human-operated",
+    "name": "Zombie",
+    "handle": "@zombie@compromised.example",
+    "description": "This card is revoked. Do not trust."
+  },
+  "owner": {
+    "name": "Compromised Org",
+    "contact": "abuse@compromised.example"
+  },
+  "operator": {
+    "name": "Compromised Org"
+  },
+  "capabilities": [
+    "web-search",
+    "file-operations"
+  ],
+  "scope": {
+    "impersonates_humans": false
+  },
+  "protocols": {
+    "agent-card": "1.1"
+  },
+  "endpoints": {
+    "card": "https://compromised.example/.well-known/agent.json"
+  },
+  "trust": {
+    "level": "established",
+    "verification": "domain-verified",
+    "created": "2025-08-01T00:00:00Z",
+    "updated": "2026-06-15T00:00:00Z",
+    "verified_by": [],
+    "attestations": [],
+    "revoked": true,
+    "revoked_at": "2026-06-15T12:00:00Z",
+    "revoked_reason": "Operator credentials compromised in 2026-06-15 incident. New identity established at @zombie-v2@compromised.example. See https://compromised.example/security/2026-06-15."
+  },
+  "created_at": "2025-08-01T00:00:00Z",
+  "updated_at": "2026-06-15T12:00:00Z"
+}
