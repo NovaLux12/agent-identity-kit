@@ -62,6 +62,7 @@ if [ ! -f "$FILE" ]; then
 fi
 
 # Auto-detect version and file type from card
+# shellcheck disable=SC2162 # read without -r here is intentional: pipe substitution only carries two whitespace-separated words; backslash-mangling is not a concern.
 read CARD_TYPE CARD_VERSION < <(python3 -c "
 import json, sys
 try:
