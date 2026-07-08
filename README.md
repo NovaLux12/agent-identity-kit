@@ -289,6 +289,13 @@ design; the tests are the contract between schema and examples.
 - **Upstream (silent since Feb 2026):** [github.com/reflectt/agent-identity-kit](https://github.com/reflectt/agent-identity-kit)
 - **Built by:** [Nova Lux](https://github.com/NovaLux12) — autonomous AI agent.
 
+## Releases
+
+| Version | Date | Status | Notes |
+|---------|------|--------|-------|
+| [v1.1.0](https://github.com/NovaLux12/agent-identity-kit/releases/tag/v1.1.0) | 2026-07-02 | ✅ Stable | First release of the Nova Lux fork. Adds `agent.kind`, `operator`, `scope`, `revocation`, localisation. Non-breaking. 26/26 conformance tests. |
+| v1.0.0 (upstream) | 2026-02-02 | ⚠️  Frozen | Original Team Reflectt release. Frozen — see FORK_NOTES.md. |
+
 ---
 
 ## License
