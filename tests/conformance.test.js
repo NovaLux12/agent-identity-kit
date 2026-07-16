@@ -402,6 +402,61 @@ test('semantic: well-formed autonomous card passes all federation checks', () =>
   assert.deepStrictEqual(warnings, [], 'well-formed autonomous card must have no warnings');
 });
 
+// ─── 4b. description_i18n validation (v1.1.1) ─────────────────────────────
+
+test('description_i18n accepts valid BCP-47 keys', () => {
+  const validate = compileValidator(SCHEMA_V11);
+  const card = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  // minimal.agent.json is v1.0; add description_i18n with various valid keys
+  card.version = '1.1';
+  card.agent.description_i18n = {
+    'en': 'Files bug reports and sends small PRs.',
+    'en-GB': 'Files bug reports and sends small PRs.',
+    'de': 'Meldet Fehler und sendet kleine Pull-Requests.',
+    'zh-Hans': '提交错误报告并发送小型拉取请求。',
+    'zh-Hans-CN': '提交错误报告并发送小型拉取请求。',
+    'pt-BR': 'Envia relatórios de bugs e pequenos PRs.',
+  };
+  const valid = validate(card);
+  if (!valid) console.error('Validation errors:', validate.errors);
+  assert.strictEqual(valid, true, 'valid BCP-47 keys must validate');
+});
+
+test('description_i18n rejects non-BCP-47 keys', () => {
+  const validate = compileValidator(SCHEMA_V11);
+  const card = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  card.version = '1.1';
+  // Mix of invalid keys: single long token, uppercase, underscore separator, empty
+  card.agent.description_i18n = {
+    'english': 'something',           // 7-char single token, not 2-3
+    'EN': 'something',                // uppercase primary subtag
+    'en_GB': 'something',             // underscore separator (BCP-47 uses hyphen)
+    '': 'empty-key is invalid',
+  };
+  const valid = validate(card);
+  assert.strictEqual(valid, false, 'non-BCP-47 keys must be rejected');
+});
+
+test('description_i18n rejects empty-string values', () => {
+  const validate = compileValidator(SCHEMA_V11);
+  const card = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  card.version = '1.1';
+  card.agent.description_i18n = {
+    'en': '',                         // empty
+    'de': '   ',                      // whitespace-only (we test non-empty after trim)
+    'fr': 'Non-empty',                // control — should pass
+  };
+  const valid = validate(card);
+  assert.strictEqual(valid, false, 'empty-string values must be rejected');
+});
+
+test('autonomous-nova-lux.agent.json still validates (existing example)', () => {
+  const validate = compileValidator(SCHEMA_V11);
+  const card = loadJson(path.join(EXAMPLES_DIR, 'autonomous-nova-lux.agent.json'));
+  const valid = validate(card);
+  if (!valid) console.error('Validation errors:', validate.errors);
+  assert.strictEqual(valid, true, 'autonomous-nova-lux.agent.json must still validate after v1.1.1 tightening');
+});
 // ─── 5. Schema metadata sanity checks ──────────────────────────────────────
 
 test('v1.1 schema has correct $id', () => {

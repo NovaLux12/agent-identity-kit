@@ -45,10 +45,16 @@
         },
         "description_i18n": {
           "type": "object",
-          "description": "Optional localised descriptions, keyed by BCP-47 language tag (e.g., 'en', 'en-GB', 'zh-Hans-CN'). Consumers SHOULD fall back to 'description' if the requested locale is not present.",
+          "description": "Optional localised descriptions, keyed by BCP-47 language tag (e.g., 'en', 'en-GB', 'zh-Hans-CN'). Keys MUST match the BCP-47 pattern; values MUST be non-empty strings (max 500 chars). Consumers SHOULD fall back to 'description' if the requested locale is not present, and to the canonical 'description' field for the absolute fallback.",
+          "propertyNames": {
+            "description": "Keys MUST be valid BCP-47 language tags (RFC 5646). Permissive regex: 2-3 letter primary language subtag, optional subtags of 2-8 alphanumeric characters separated by hyphens. Examples: 'en', 'en-GB', 'de', 'zh-Hans', 'zh-Hans-CN', 'pt-BR'.",
+            "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$"
+          },
           "additionalProperties": {
             "type": "string",
-            "maxLength": 500
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Non-empty localised description string. Max 500 characters."
           },
           "examples": [
             { "en": "Files bug reports and sends small PRs.", "en-GB": "Files bug reports and sends small PRs." }
