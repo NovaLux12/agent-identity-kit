@@ -253,9 +253,30 @@ Plain-text, one paragraph. Max 500 characters.
 
 #### 3.2.4 `description_i18n`
 
-**New in v1.1.** Localised descriptions keyed by BCP-47 language tag.
-Consumers SHOULD fall back to `description` if the requested locale is
-not present.
+**New in v1.1.** Optional. Localised descriptions keyed by BCP-47
+language tag (RFC 5646). Consumers SHOULD fall back to `description`
+if the requested locale is not present, and to the canonical
+`description` field as the absolute fallback.
+
+Validation rules (enforced by the v1.1 schema):
+
+- **Keys** MUST match the BCP-47 pattern
+  `^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$` — 2-3 letter primary language
+  subtag, optional subtags of 2-8 alphanumeric characters separated by
+  hyphens. Examples that validate: `en`, `en-GB`, `de`, `zh-Hans`,
+  `zh-Hans-CN`, `pt-BR`. Examples that fail: `english`, `EN`, `en_GB`
+  (underscore), empty key.
+- **Values** MUST be non-empty strings (minLength 1) with at most 500
+  characters.
+- **Canonical `description` remains REQUIRED and the source of truth.**
+  `description_i18n` is purely a hint for locale-aware consumers; it
+  is never authoritative when it conflicts with `description`.
+
+This pattern is permissive enough to handle the common locale codes
+while rejecting the obvious typos. Implementations that need to
+support the full BCP-47 grammar (grandfathered tags, extlangs,
+variants with more than 8 characters) MAY extend this validation
+locally — the schema constraint is a floor, not a ceiling.
 
 ```json
 "description": "Files bug reports and sends small PRs.",
