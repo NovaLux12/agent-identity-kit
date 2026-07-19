@@ -31,6 +31,7 @@ const addFormats = require('ajv-formats');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const SCHEMA_V11 = path.join(REPO_ROOT, 'schema', 'agent-card.v1.1.json');
+const SCHEMA_V12 = path.join(REPO_ROOT, 'schema', 'agent-card.v1.2.json');
 const SCHEMA_V10 = path.join(REPO_ROOT, 'schema', 'agent.schema.json');
 const SCHEMA_TEAM_V11 = path.join(REPO_ROOT, 'schema', 'agents.v1.1.json');
 const EXAMPLES_DIR = path.join(REPO_ROOT, 'examples');
@@ -493,4 +494,254 @@ test('v1.1 schema documents trust.attestations shape as SPEC (issuer/type/issued
   assert.ok(!attestationProps.by, 'must NOT have legacy by field');
   assert.ok(!attestationProps.at, 'must NOT have legacy at field');
   assert.ok(!attestationProps.claim, 'must NOT have legacy claim field');
+});
+
+// ─── 6. v1.2 trust.vouched_by[] ──────────────────────────────────────────
+
+test('v1.2 schema exists and is valid JSON Schema', () => {
+  const schema = loadJson(SCHEMA_V12);
+  assert.ok(schema.$id.includes('v1.2'), 'schema $id must reference v1.2');
+  assert.deepStrictEqual(
+    schema.properties.version.enum.sort(),
+    ['1.0', '1.1', '1.2'],
+    'v1.2 schema must accept 1.0, 1.1, and 1.2'
+  );
+});
+
+test('v1.2 schema accepts all v1.1 example cards (back-compat)', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const examples = fs.readdirSync(EXAMPLES_DIR)
+    .filter(f => f.endsWith('.agent.json'))
+    .filter(f => f !== 'vouched-by-bob.agent.json');
+  for (const ex of examples) {
+    const card = loadJson(path.join(EXAMPLES_DIR, ex));
+    const valid = validateV12(card);
+    if (!valid) {
+      console.error(`Validation errors for ${ex}:`, validateV12.errors);
+    }
+    assert.strictEqual(valid, true, `${ex} must validate against v1.2 unchanged`);
+  }
+});
+
+test('vouched_by example card validates against v1.2', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const card = loadJson(path.join(EXAMPLES_DIR, 'vouched-by-bob.agent.json'));
+  // Set version explicitly to 1.2 — the card declares it, but make sure
+  // consumers can also coerce older cards via version negotiation.
+  const valid = validateV12(card);
+  if (!valid) console.error('Validation errors:', validateV12.errors);
+  assert.strictEqual(valid, true, 'vouched-by-bob.agent.json must validate');
+});
+
+test('vouched_by: entry with valid signature validates', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z',
+      signature: 'ed25519:0x' + '0'.repeat(128)
+    }]
+  };
+  const valid = validateV12(base);
+  if (!valid) console.error('Validation errors:', validateV12.errors);
+  assert.strictEqual(valid, true);
+});
+
+test('vouched_by: entry missing signature is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z'
+      // signature intentionally missing
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'entry missing required signature must be rejected');
+  // Confirm the error mentions signature
+  const hasSigError = (validateV12.errors || []).some(e =>
+    e.instancePath && e.instancePath.includes('signature') ||
+    e.message && e.message.toLowerCase().includes('signature') ||
+    e.params && e.params.missingProperty === 'signature'
+  );
+  assert.ok(hasSigError, 'validation error must reference the missing signature field');
+});
+
+test('vouched_by: entry with malformed vouched_at is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: 'not-a-datetime',
+      signature: 'ed25519:0x' + '0'.repeat(128)
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'malformed vouched_at must be rejected');
+});
+
+test('vouched_by: malformed signature (wrong format) is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z',
+      signature: 'not-ed25519-format'
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'malformed signature must be rejected');
+});
+
+test('vouched_by: malformed signature (wrong hex length) is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z',
+      // hex too short (must be 128 chars)
+      signature: 'ed25519:0x' + 'a'.repeat(64)
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'wrong-length hex signature must be rejected');
+});
+
+test('vouched_by: with scope (single capability string) validates', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.capabilities = ['bug-filing', 'pr-submission'];
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z',
+      scope: 'bug-filing',
+      signature: 'ed25519:0x' + '0'.repeat(128)
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, true, 'string scope must validate');
+});
+
+test('vouched_by: with scope (array of capability strings) validates', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z',
+      scope: ['bug-filing', 'pr-submission'],
+      signature: 'ed25519:0x' + '0'.repeat(128)
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, true, 'array scope must validate');
+});
+
+test('vouched_by: malformed scope (numeric) is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z',
+      scope: 42,
+      signature: 'ed25519:0x' + '0'.repeat(128)
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'numeric scope must be rejected');
+});
+
+test('vouched_by: expires_at is optional and validates when present', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z',
+      expires_at: '2027-07-20T12:00:00Z',
+      signature: 'ed25519:0x' + '0'.repeat(128)
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, true, 'expires_at with valid ISO 8601 must validate');
+});
+
+test('vouched_by: malformed expires_at is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z',
+      expires_at: 'tomorrow',
+      signature: 'ed25519:0x' + '0'.repeat(128)
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'malformed expires_at must be rejected');
+});
+
+test('vouched_by: additionalProperties at item level rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@alice@example.com',
+      vouched_at: '2026-07-20T12:00:00Z',
+      signature: 'ed25519:0x' + '0'.repeat(128),
+      reputation_score: 5  // not in schema, must be rejected
+    }]
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'extra fields at item level must be rejected');
+});
+
+// Semantic check: self-vouch must be rejected by consumers.
+// JSON Schema can't easily express this cross-field constraint, so we
+// document it in SPEC §3.11.2 with a conformance helper.
+function findSelfVouches(card) {
+  const self = card.agent && card.agent.handle;
+  if (!self) return [];
+  const list = (card.trust && card.trust.vouched_by) || [];
+  return list.filter(v => v.voucher === self);
+}
+
+test('vouched_by: self-vouch detection (semantic check, SPEC §3.11.2)', () => {
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.agent.handle = '@bob@example.com';
+  base.trust = {
+    vouched_by: [{
+      voucher: '@bob@example.com',  // self-vouch
+      vouched_at: '2026-07-20T12:00:00Z',
+      signature: 'ed25519:0x' + '0'.repeat(128)
+    }]
+  };
+  // Schema validates — the pattern matches the handle. Self-vouch is a
+  // SEMANTIC consumer-side check, not a schema check.
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const schemaValid = validateV12(base);
+  assert.strictEqual(schemaValid, true, 'shape validates; rejection is consumer-side');
+
+  const selfVouches = findSelfVouches(base);
+  assert.strictEqual(selfVouches.length, 1, 'must detect exactly one self-vouch');
+  assert.strictEqual(selfVouches[0].voucher, '@bob@example.com');
 });

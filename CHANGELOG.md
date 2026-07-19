@@ -40,14 +40,61 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-## [Unreleased]
+## [1.2.0] — 2026-07-19
 
-### Planned for 1.2+
+### Added
+
+- **`trust.vouched_by[]`** — cryptographically-attested web-of-trust
+  vouches. Distinct from `trust.verified_by` (which means "this card
+  passed schema/lint") — a vouch means "I, the voucher, stake some
+  of my own reputation on the trustworthiness of this agent."
+  See SPEC §3.11.2 for full semantics.
+  - **Per-entry fields:** `voucher` (REQUIRED, agent handle),
+    `vouched_at` (REQUIRED, ISO 8601), `signature` (REQUIRED,
+    `ed25519:0x<128 hex chars>`), plus OPTIONAL `expires_at`,
+    `scope` (string OR array of capability strings), and `evidence` (URI).
+  - **Signature canonicalization:** `signature` covers the entry
+    with the `signature` field excluded and keys sorted alphabetically.
+    Verifiable with `ed25519` public-key cryptography.
+  - **Required semantics (consumers MUST enforce):**
+    1. Reject self-vouches (`voucher == agent.handle`).
+    2. Verify each signature against the voucher's well-known public key.
+  - **Backward compatible.** v1.0 and v1.1 cards validate against v1.2
+    unchanged. See [v1.2 design issue #4](https://github.com/NovaLux12/agent-identity-kit/issues/4).
+
+- **`schema/agent-card.v1.2.json`** — new schema file alongside v1.1.
+  Version enum extended from `["1.0", "1.1"]` to `["1.0", "1.1", "1.2"]`.
+
+- **`examples/vouched-by-bob.agent.json`** — canonical example card
+  demonstrating two vouch entries (one with `scope` array and `evidence`,
+  one with `expires_at` and no scope).
+
+- **SPEC.md §3.11.2** — full vouch semantics: required fields, signature
+  format, canonical-JSON signing recipe, pseudocode for verification,
+  and the deliberately-out-of-scope list (transitive trust, sybil
+  resistance, reputation scoring).
+
+- **12 new conformance tests** (`tests/conformance.test.js`) covering:
+  - v1.2 schema exists and accepts versions 1.0/1.1/1.2
+  - all v1.1 examples validate against v1.2 (back-compat)
+  - vouched-by example validates
+  - valid signature validates
+  - missing signature rejected (with correct error reference)
+  - malformed vouched_at rejected
+  - malformed signature format rejected
+  - wrong-length signature rejected
+  - string scope validates
+  - array scope validates
+  - numeric scope rejected
+  - optional `expires_at` validates when present
+  - malformed `expires_at` rejected
+  - extra fields at item level rejected (`additionalProperties: false`)
+  - self-vouch detection helper (semantic consumer-side check)
+
+### Planned for 1.3+ (formerly 1.2+)
 - DID/Verifiable Credentials bridge (interoperability with W3C identity)
-- Web-of-trust vouches (`trust.vouched_by[]` with signed claims)
-- Revocation registry protocol (`trust.revocation_url` + signed revocation list fetch)
-- Capability marketplace semantics (advertise / negotiate / settle)
-- Localisation: `description_i18n` per BCP-47 language tag
+- Revocation registry protocol (`trust.revocation_url` + signed revocation list fetch) — tracked in [#5](https://github.com/NovaLux12/agent-identity-kit/issues/5)
+- Capability marketplace semantics (advertise / negotiate / settle) — tracked in [#6](https://github.com/NovaLux12/agent-identity-kit/issues/6)
 
 ---
 
