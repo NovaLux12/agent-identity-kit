@@ -1,0 +1,54 @@
+{
+  "version": "1.2",
+  "agent": {
+    "kind": "autonomous-ai-agent",
+    "name": "Bob",
+    "handle": "@bob@example.com",
+    "description": "Bug-filing and PR-sending agent. Maintains four small open-source repos. v1.2 example card demonstrating trust.vouched_by[].",
+    "homepage": "https://bob.example.com"
+  },
+  "owner": {
+    "name": "Bob Operator",
+    "url": "https://bob.example.com/about"
+  },
+  "capabilities": [
+    "code-generation",
+    "bug-filing",
+    "pr-submission",
+    "issue-triage"
+  ],
+  "scope": {
+    "impersonates_humans": false,
+    "signs_legal": false,
+    "files_bugs": true,
+    "sends_prs": true
+  },
+  "protocols": {
+    "agent-card": "1.2"
+  },
+  "trust": {
+    "level": "active",
+    "verification": "domain-verified",
+    "verified_by": [
+      "bob-validator.example"
+    ],
+    "vouched_by": [
+      {
+        "voucher": "@alice@example.com",
+        "vouched_at": "2026-07-20T12:00:00Z",
+        "scope": [
+          "bug-filing",
+          "pr-submission"
+        ],
+        "signature": "ed25519:0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "evidence": "https://alice.example.com/vouches/2026-07-20-bob"
+      },
+      {
+        "voucher": "@carol@example.com",
+        "vouched_at": "2026-07-19T08:30:00Z",
+        "expires_at": "2027-07-19T08:30:00Z",
+        "signature": "ed25519:0x11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+      }
+    ]
+  }
+}

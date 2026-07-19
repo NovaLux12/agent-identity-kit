@@ -424,6 +424,7 @@ for detailed semantics.
 | `created` | string (ISO 8601) | OPTIONAL | When this identity was created. |
 | `updated` | string (ISO 8601) | OPTIONAL | When this card was last modified. |
 | `verified_by` | string[] | OPTIONAL | List of registries that have validated this card. |
+| `vouched_by` | object[] | OPTIONAL | **New in v1.2.** Web-of-trust vouches. Third-party agents staking some of their own reputation on this card. See [§3.11.2](#3112-vouches-new-in-v12). |
 | `attestations` | object[] | OPTIONAL | Third-party attestation records. See [§3.11.1](#3111-attestations). |
 | `revoked` | boolean | OPTIONAL | **New in v1.1.** Whether this card has been revoked. Default `false`. If `true`, consumers MUST NOT trust this card. |
 | `revoked_at` | string (ISO 8601) | CONDITIONAL | **New in v1.1.** When this card was revoked. Required when `revoked: true`. |
@@ -446,6 +447,81 @@ Each attestation in `trust.attestations[]`:
 items; v1.0 SPEC text used `issuer`/`type`/`issued_at`/`expires_at`/`proof`.
 These were incompatible — a card built to the schema would fail spec
 validation and vice versa. v1.1 reconciles on the SPEC shape.
+
+#### 3.11.2 Vouches (New in v1.2)
+
+Each entry in `trust.vouched_by[]` is a cryptographically attested
+claim: "I, the voucher, stake some of my own reputation on the
+trustworthiness of this card."
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `voucher` | string | **REQUIRED** | Fediverse-style handle of the vouching agent: `@name@domain`. RECOMMENDED to be resolvable to a discoverable agent.json. |
+| `vouched_at` | string (ISO 8601) | **REQUIRED** | When the vouch was issued. |
+| `expires_at` | string (ISO 8601) | OPTIONAL | When the vouch expires. Omission means valid until explicitly revoked. |
+| `scope` | string OR string[] | OPTIONAL | Capability names from `capabilities[]` that the vouch covers. Single string or array. Omission = all capabilities. |
+| `signature` | string | **REQUIRED** | `ed25519:0x<128 lowercase hex chars>` over a canonical JSON of this entry with the `signature` field excluded. Verified using the voucher's well-known public key. |
+| `evidence` | string (URI) | OPTIONAL | URL where the vouch is published outside the card (blog post, recorded transcript, etc.). |
+
+**Distinction from `verified_by`:**
+
+- `verified_by` says *this card passed schema/lint*. It's about the artifact.
+- `vouched_by` says *this agent stakes its own reputation on the trustworthiness of this agent*. It's about the trustor.
+
+A registry can run `verified_by` checks without trusting the card at all;
+a vouch requires the voucher to put skin in the game — if the card turns
+out to be malicious, the voucher's own reputation is at stake.
+
+**Required semantics (consumers MUST enforce):**
+
+1. **Self-vouch rejection.** Any entry where `voucher == this card's own
+   agent.handle` MUST be rejected. (See conformance test.)
+2. **Signature verification.** Each entry's `signature` MUST be verified
+   against the voucher's well-known public key. Consumers MAY reject the
+   whole `vouched_by[]` if any signature fails, OR they MAY mark only the
+   failing entry as untrusted (depending on the consumer's threat model).
+
+**Out of scope for v1.2 (intentionally):**
+
+- **Transitive trust.** If Alice vouches for Bob, and Bob vouches for
+  Carol, v1.2 does NOT endorse Carol. Consumers MUST compute transitive
+  trust themselves; web-of-trust semantics vary widely across ecosystems.
+- **Sybil-resistance.** A agent creating many accounts to vouch for
+  itself is out of scope for the data model. Consumers handle via external
+  rate-limits or identity-proving services.
+- **Reputation scoring.** Computing "this agent has 5 vouches from
+  established agents so is probably trustworthy" is a consumer concern.
+
+**Canonical JSON for signing:**
+
+The signature covers the entry with `signature` removed, with keys sorted
+alphabetically (and no whitespace). An interoperable canonical form is:
+
+```js
+function canonicalVouch(entry) {
+  const { signature, ...rest } = entry;
+  // sort keys recursively
+  return JSON.stringify(rest, Object.keys(rest).sort(), 0);
+}
+```
+
+Sign the UTF-8 bytes of this string with the voucher's ed25519 private
+key; the signature is `ed25519:0x` + lowercase-hex of the 64-byte output.
+
+**Verification example (pseudocode):**
+
+```js
+function verifyVouch(vouch, voucherCard) {
+  const pub = loadPublicKey(voucherCard);
+  const canonical = canonicalVouch(vouch);
+  const sig = vouch.signature.replace(/^ed25519:0x/, '');
+  return nacl.sign.detached.verify(
+    new TextEncoder().encode(canonical),
+    hexToBytes(sig),
+    pub
+  );
+}
+```
 
 ### 3.12 `links` Object
 

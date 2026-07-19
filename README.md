@@ -2,8 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Spec Version](https://img.shields.io/badge/Spec-v1.1-blue.svg)](SPEC.md)
-[![Schema v1.1](https://img.shields.io/badge/Schema-JSON-orange.svg)](schema/agent-card.v1.1.json)
-[![Conformance](https://img.shields.io/badge/Conformance-26%2F26-brightgreen.svg)](tests/)
+[![Schema v1.2](https://img.shields.io/badge/Schema-JSON-orange.svg)](schema/agent-card.v1.2.json)
+[![Conformance](https://img.shields.io/badge/Conformance-47%2F47-brightgreen.svg)](tests/)
 
 **A portable identity standard for AI agents.**
 
@@ -72,7 +72,7 @@ so the spec actually models reality.
 ./skill/scripts/validate.sh path/to/your-agent.json --strict
 ```
 
-Validates against v1.0 or v1.1 schema (auto-detects from `version` field).
+Validates against v1.0, v1.1, or v1.2 schema (auto-detects from `version` field).
 The `--strict` flag runs additional federation checks: revoked cards
 warn, cards without `scope.impersonates_humans: false` warn.
 
@@ -145,7 +145,7 @@ For the complete specification, see **[`SPEC.md`](./SPEC.md)**.
 
 | Field | Description |
 |-------|-------------|
-| `version` | Spec version (`"1.0"` or `"1.1"`). |
+| `version` | Spec version (`"1.0"`, `"1.1"`, or `"1.2"`). |
 | `agent.name` | Display name. |
 | `owner` | Required iff `agent.kind` is `human-operated` or `hybrid`. |
 
