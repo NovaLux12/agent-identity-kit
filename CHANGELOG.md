@@ -6,6 +6,55 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [1.2.1] — 2026-07-22
+
+### Added
+
+- **`trust.revocation_url`** + **`trust.revocation_checked_at`** —
+  signed revocation list fetch protocol. Solves the problem that
+  `trust.revoked: true` requires updating the card itself, which
+  fails when the card endpoint is unreachable. The new fields let
+  issuers publish a separate, signed revocation list that consumers
+  MUST check before treating the card as live.
+  - **`revocation_url`** (OPTIONAL URI): where the signed list lives.
+    SHOULD be HTTPS, SHOULD be on a different origin than the card
+    endpoint, SHOULD be under `.well-known/`.
+  - **`revocation_checked_at`** (OPTIONAL ISO 8601): consumer-side
+    cache-invalidation hint. Consumers MUST refuse cards whose
+    `revocation_checked_at` is in the future (clock-skew attack
+    signal).
+  - **Required semantics** documented in SPEC §3.11.3: fetch →
+    verify signature → check freshness → look up subject. Consumers
+    MUST treat failed fetches and signature failures as **status
+    unknown** (not trusted), and a stale list (`now >= issued_at + ttl`)
+    is also status unknown.
+  - **Scope-aware revocations**: an entry with `scope: [...]` revokes
+    only the listed capabilities, not the whole card. Without `scope`,
+    the whole card is revoked.
+  - **Reference implementation** shipped at `tools/verify-revocation.py`
+    (Python 3.8+, `cryptography` package). Demonstrates the full
+    protocol end-to-end. Consumers are encouraged to port the logic
+    to their preferred language; the spec is the contract.
+  - **Smoke test** at `tests/smoke-verify-revocation.py` generates a
+    real keypair, signs a real list, and exercises the verifier
+    against LIVE and REVOKED cards. Run with `npm run smoke` from
+    `tests/`.
+- **Three new conformance tests** (`tests/conformance.test.js`):
+  - `revocation_url: well-formed HTTPS URL on a different origin validates`
+  - `revocation_checked_at: a valid ISO 8601 timestamp validates`
+  - `semantic: revocation_checked_at in the future is a tamper signal`
+- **New example**: `examples/revocation-aware.agent.json` shows the
+  shape end-to-end.
+
+### Out of scope (intentionally — see SPEC §3.11.3)
+
+- Multi-issuer revocation aggregators (v1.3+)
+- Revocation history (only current snapshot)
+- Revoking vouches (use a revocation against the voucher's own handle)
+- Push-based revocation (webhooks/pubsub are a transport concern)
+
+---
+
 ## [1.1.1] — 2026-07-16
 
 ### Changed
