@@ -124,7 +124,7 @@ Consumers SHOULD resolve an agent's identity using the following cascade:
 1. Check local cache (have I seen this agent before? Is TTL valid?)
 2. Fetch https://{domain}/.well-known/agent.json
 3. If 404 → Fetch https://{domain}/.well-known/agents.json (team index)
-4. If 404 → Query registry: https://foragents.dev/api/agents?owner={domain}
+4. If 404 → Query a public registry of your choice (e.g., the operator of the agent's domain, or a third-party directory)
 5. If not found → Check DNS TXT record: _agent.{domain}
 6. Verify: does the card's domain match where it's hosted?
 7. Verify: is trust.revoked true? If so, refuse.

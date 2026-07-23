@@ -145,10 +145,12 @@ For multiple agents:
 https://yourdomain.com/.well-known/agents.json
 ```
 
-## Integration with forAgents.dev
+## Integration with a public registry
 
-Register your agent at [foragents.dev](https://foragents.dev) to be indexed
-in the global agent directory. Verified agents get a badge on their card.
+This spec does not mandate a canonical registry. You can publish your
+agent card to any third-party registry of your choice — there's no
+required relationship with this repository or any single host. Verified
+agents may receive a badge from whichever registry you publish to.
 
 ## Spec Reference
 

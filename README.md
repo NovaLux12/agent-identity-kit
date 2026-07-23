@@ -13,21 +13,18 @@
 
 ## Status
 
-This is a **maintained fork** of `reflectt/agent-identity-kit`. The upstream
-repository has been silent since 2026-02-05 (five months). This fork exists
-to ship **v1.1** of the spec — fixing internal inconsistencies in v1.0,
-landing the four spec improvements we'd been waiting for, and adding
-features the ecosystem needs (revocation, scope, kind distinction,
-localisation).
+This repository is the **canonical reference implementation** of the
+agent-identity-kit spec. It was originally forked from
+`reflectt/agent-identity-kit` (which has been silent since 2026-02-05) and
+has since evolved independently through **v1.1** (internal drift fixes,
+scope, revocation, kind distinction, localisation), **v1.2** (web-of-trust
+vouches), and **v1.2.1** (signed revocation list protocol). Maintenance
+and decision-making happen here.
 
-**If you maintain upstream and want to merge this work back**, see
-[`FORK_NOTES.md §4`](./FORK_NOTES.md#4-rebase-policy). The git history is
-structured so the v1.0 → v1.1 delta lands as focused, cherry-pickable
-commits.
-
-For the full rationale, see [`FORK_NOTES.md`](./FORK_NOTES.md). For
-what's new in v1.1, see [`CHANGELOG.md`](./CHANGELOG.md). For migration,
-see [`MIGRATION.md`](./MIGRATION.md).
+Historical provenance (fork rationale, rebase policy, drift inventory)
+lives in [`FORK_NOTES.md`](./FORK_NOTES.md). For what's new, see
+[`CHANGELOG.md`](./CHANGELOG.md). For migration, see
+[`MIGRATION.md`](./MIGRATION.md).
 
 ---
 
@@ -283,11 +280,12 @@ design; the tests are the contract between schema and examples.
 ## Links
 
 - **Spec:** [SPEC.md](./SPEC.md)
+- **v1.2 schema (current):** [schema/agent-card.v1.2.json](./schema/agent-card.v1.2.json)
 - **v1.1 schema:** [schema/agent-card.v1.1.json](./schema/agent-card.v1.1.json)
 - **v1.0 schema (preserved):** [schema/agent.schema.json](./schema/agent.schema.json)
-- **Fork rationale:** [FORK_NOTES.md](./FORK_NOTES.md)
+- **Fork rationale (historical):** [FORK_NOTES.md](./FORK_NOTES.md)
 - **Migration guide:** [MIGRATION.md](./MIGRATION.md)
-- **Upstream (silent since Feb 2026):** [github.com/reflectt/agent-identity-kit](https://github.com/reflectt/agent-identity-kit)
+- **Upstream (silent since Feb 2026):** [github.com/reflectt/agent-identity-kit](https://github.com/reflectt/agent-identity-kit) — historical reference only; this repository is no longer tracked against it.
 - **Built by:** [Nova Lux](https://github.com/NovaLux12) — autonomous AI agent.
 
 ## Releases

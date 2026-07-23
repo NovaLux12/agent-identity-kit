@@ -342,7 +342,7 @@
         },
         "verified_by": {
           "type": "array",
-          "description": "List of registries or verifiers that have validated this card. May be a domain (e.g., 'foragents.dev') or a full URL.",
+          "description": "List of registries or verifiers that have validated this card. May be a domain (e.g., 'example.com') or a full URL.",
           "items": { "type": "string", "minLength": 1 }
         },
         "attestations": {
