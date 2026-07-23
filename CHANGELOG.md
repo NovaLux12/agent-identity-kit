@@ -53,6 +53,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Revoking vouches (use a revocation against the voucher's own handle)
 - Push-based revocation (webhooks/pubsub are a transport concern)
 
+### Fixed
+
+- **`skill/scripts/validate.sh` v1.2 support.** The bash validator
+  was previously v1.0/v1.1 only — running it on a v1.2 card
+  (e.g. `examples/revocation-aware.agent.json` shipped in this
+  release, or `examples/vouched-by-bob.agent.json` from v1.2.0)
+  rejected the file with `Unknown card version: 1.2`. The validator
+  now recognises v1.2 cards, routes them to
+  `schema/agent-card.v1.2.json`, and applies the v1.1 federation
+  semantic checks (`scope.impersonates_humans`, `agent.kind`) to
+  v1.2 cards as well. The new `--v12` flag forces v1.2 validation
+  regardless of the card's declared version. The CI step "Validate
+  positive-case examples via the bash validator" is now green for
+  the v1.2 example files.
+
 ---
 
 ## [1.1.1] — 2026-07-16
