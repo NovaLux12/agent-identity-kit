@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.2.json",
   "title": "Agent Card (v1.2)",
-  "description": "A portable, machine-readable identity document for AI agents. v1.2 of the agent-identity-kit spec. Backward-compatible with v1.0 and v1.1 — every prior version's card validates unchanged. Adds: trust.vouched_by[] for cryptographically-attested web-of-trust vouches (see SPEC §3.11.2).",
+  "description": "A portable, machine-readable identity document for AI agents. v1.2 of the agent-identity-kit spec. Backward-compatible with v1.0 and v1.1 — every prior version's card validates unchanged. v1.2.0 added: trust.vouched_by[] for cryptographically-attested web-of-trust vouches (see SPEC §3.11.2). v1.2.1 added: trust.revocation_url and trust.revocation_checked_at for the signed revocation list fetch protocol (see SPEC §3.11.3).",
   "type": "object",
   "required": ["version", "agent"],
   "properties": {
@@ -392,6 +392,16 @@
         "revoked_reason": {
           "type": "string",
           "description": "Why this card was revoked. Free-text, human-readable."
+        },
+        "revocation_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "**New in v1.2.1.** URL where a signed revocation list is published for this agent. SHOULD be HTTPS, SHOULD be on a different origin than the card endpoint (so a compromised card server cannot also suppress revocation), and SHOULD live under a .well-known/ path. When present, consumers SHOULD fetch the list, verify its signature against the issuer's well-known public key, and treat the card as revoked if a matching entry has effective_from <= now. See SPEC §3.11.3 for the full protocol."
+        },
+        "revocation_checked_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "**New in v1.2.1.** When the consumer last successfully fetched and verified the revocation list at revocation_url. This is a consumer-side cache-invalidation hint only — consumers MUST re-check on their own schedule and MUST NOT trust a card with a revocation_checked_at value in the future (clock-skew attack). The field itself is OPTIONAL but RECOMMENDED whenever revocation_url is set, so other consumers can reason about freshness without a separate request."
         },
         "ttl": {
           "type": "integer",

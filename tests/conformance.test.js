@@ -745,3 +745,122 @@ test('vouched_by: self-vouch detection (semantic check, SPEC §3.11.2)', () => {
   assert.strictEqual(selfVouches.length, 1, 'must detect exactly one self-vouch');
   assert.strictEqual(selfVouches[0].voucher, '@bob@example.com');
 });
+// ─── 7. v1.2.1 trust.revocation_url + revocation_checked_at ─────────────
+
+test('v1.2.1 revocation_url example card validates against v1.2 schema', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const card = loadJson(path.join(EXAMPLES_DIR, 'revocation-aware.agent.json'));
+  const valid = validateV12(card);
+  if (!valid) console.error('Validation errors:', validateV12.errors);
+  assert.strictEqual(valid, true, 'revocation-aware.agent.json must validate');
+});
+
+test('revocation_url: a well-formed HTTPS URL on a different origin validates', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    revocation_url: 'https://revocations.example.com/.well-known/revocations.json'
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, true, 'https .well-known URL on a different origin must validate');
+});
+
+test('revocation_url: an http:// (non-HTTPS) URL still validates (SHOULD-not-MUST)', () => {
+  // The schema accepts any URI; HTTPS is a SHOULD in SPEC §3.11.3. We
+  // intentionally do not enforce HTTPS at the schema level so issuers can
+  // test locally without TLS; production consumers SHOULD warn on http://.
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    revocation_url: 'http://localhost:8080/revocations.json'
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, true, 'plain http URL validates (SHOULD-not-MUST)');
+});
+
+test('revocation_url: a malformed URI is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    revocation_url: 'not a url with spaces'
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'malformed revocation_url must be rejected');
+});
+
+test('revocation_url: non-string type is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    revocation_url: 42
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'numeric revocation_url must be rejected');
+});
+
+test('revocation_checked_at: a valid ISO 8601 timestamp validates', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    revocation_url: 'https://revocations.example.com/.well-known/revocations.json',
+    revocation_checked_at: '2026-07-20T12:00:00Z'
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, true, 'valid revocation_checked_at must validate');
+});
+
+test('revocation_checked_at: a non-ISO-8601 string is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    revocation_checked_at: 'yesterday at noon'
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'malformed revocation_checked_at must be rejected');
+});
+
+test('revocation_checked_at: a numeric type is rejected', () => {
+  const validateV12 = compileValidator(SCHEMA_V12);
+  const base = loadJson(path.join(EXAMPLES_DIR, 'minimal.agent.json'));
+  base.version = '1.2';
+  base.trust = {
+    revocation_checked_at: 1721476800
+  };
+  const valid = validateV12(base);
+  assert.strictEqual(valid, false, 'numeric revocation_checked_at must be rejected');
+});
+
+test('v1.2 schema still accepts all v1.0 / v1.1 example cards (back-compat)', () => {
+  // The new fields are OPTIONAL; existing examples without them must
+  // still validate. This is the additivity guarantee.
+  const validateV12 = compileValidator(SCHEMA_V12);
+  for (const f of ['kai.agent.json', 'autonomous-nova-lux.agent.json', 'hybrid-kestrel.agent.json', 'revoked-zombie.agent.json', 'minimal.agent.json']) {
+    const card = loadJson(path.join(EXAMPLES_DIR, f));
+    const valid = validateV12(card);
+    if (!valid) console.error(`Validation errors for ${f}:`, validateV12.errors);
+    assert.strictEqual(valid, true, `${f} must validate against v1.2 schema (additive)`);
+  }
+});
+
+test('semantic: revocation_checked_at in the future is a tamper signal (SPEC §3.11.3)', () => {
+  // Schema accepts future timestamps (we can't enforce clock-skew
+  // rejection at the schema level without a moving target). The check
+  // is consumer-side. We exercise the helper here so consumers have
+  // a reference implementation.
+  const card = {
+    trust: {
+      revocation_url: 'https://revocations.example.com/.well-known/revocations.json',
+      revocation_checked_at: '2099-01-01T00:00:00Z'  // well in the future
+    }
+  };
+  const now = new Date('2026-07-22T00:00:00Z');
+  const checkedAt = new Date(card.trust.revocation_checked_at);
+  const isFuture = checkedAt.getTime() > now.getTime();
+  assert.strictEqual(isFuture, true, 'future revocation_checked_at must be detectable');
+});

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Agent Identity Kit — Schema Validator (v1.1)
+# Agent Identity Kit — Schema Validator
 # Auto-detects card spec version and validates against the matching schema.
 # Usage: validate.sh <agent.json> [--schema <path>] [--strict]
 #
@@ -10,6 +10,9 @@ set -euo pipefail
 #   --strict        Run additional semantic checks (revocation, impersonation)
 #   --v10           Force v1.0 schema validation regardless of card version
 #   --v11           Force v1.1 schema validation regardless of card version
+#   --v12           Force v1.2 schema validation regardless of card version
+#
+# Supported versions: v1.0, v1.1, v1.2 (additive, backward-compatible).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -37,6 +40,10 @@ while [[ $# -gt 0 ]]; do
       FORCE_VERSION="1.1"
       shift
       ;;
+    --v12)
+      FORCE_VERSION="1.2"
+      shift
+      ;;
     -*)
       echo "Unknown flag: $1" >&2
       exit 1
@@ -49,10 +56,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "$FILE" ]; then
-  echo "Usage: validate.sh <agent.json> [--schema <path>] [--strict] [--v10|--v11]"
+  echo "Usage: validate.sh <agent.json> [--schema <path>] [--strict] [--v10|--v11|--v12]"
   echo ""
   echo "Auto-detects the card's spec version and validates against the matching schema."
-  echo "Supports both v1.0 and v1.1 cards."
+  echo "Supports v1.0, v1.1, and v1.2 cards."
   exit 1
 fi
 
@@ -90,12 +97,14 @@ elif [ "$CARD_TYPE" == "team" ] && [ "$CARD_VERSION" == "1.1" ]; then
   SCHEMA="$REPO_ROOT/schema/agents.v1.1.json"
 elif [ "$CARD_TYPE" == "team" ] && [ "$CARD_VERSION" == "1.0" ]; then
   SCHEMA="$REPO_ROOT/schema/agents.json"
+elif [ "$CARD_VERSION" == "1.2" ]; then
+  SCHEMA="$REPO_ROOT/schema/agent-card.v1.2.json"
 elif [ "$CARD_VERSION" == "1.1" ]; then
   SCHEMA="$REPO_ROOT/schema/agent-card.v1.1.json"
 elif [ "$CARD_VERSION" == "1.0" ]; then
   SCHEMA="$REPO_ROOT/schema/agent.schema.json"
 else
-  echo "❌ Unknown card version: $CARD_VERSION (expected 1.0 or 1.1)"
+  echo "❌ Unknown card version: $CARD_VERSION (expected 1.0, 1.1, or 1.2)"
   exit 1
 fi
 
@@ -177,8 +186,9 @@ if '$CARD_TYPE' == 'card':
     if revoked:
         warnings.append('trust.revoked is true — card is revoked, should be refused')
 
-# Federation check 2 & 3: only apply to v1.1 individual cards, not team indexes
-if '$CARD_TYPE' == 'card' and '$CARD_VERSION' == '1.1':
+# Federation check 2 & 3: apply to v1.1 AND v1.2 individual cards, not team indexes.
+# v1.2 is additive over v1.1 — the federation invariants don't change.
+if '$CARD_TYPE' == 'card' and ('$CARD_VERSION' == '1.1' or '$CARD_VERSION' == '1.2'):
     scope = data.get('scope', {})
     impersonates = scope.get('impersonates_humans', None)
     if impersonates is None:

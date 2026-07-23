@@ -13,6 +13,22 @@ npm test
 
 Requires Node.js 18+ (uses the built-in `node:test` runner).
 
+## Revocation verifier smoke test (v1.2.1)
+
+The reference implementation in `../tools/verify-revocation.py` has its own
+end-to-end smoke test. It generates a real ed25519 keypair, signs a real
+revocation list, spins up a local HTTP server, and exercises the verifier
+against a LIVE card and a REVOKED card.
+
+```bash
+cd tests
+npm run smoke
+```
+
+Requires Python 3.8+ with the `cryptography` package (`pip install cryptography`).
+The smoke test is separate from `npm test` because it depends on Python and the
+`cryptography` library, not on the Node toolchain.
+
 ## What it tests
 
 ### Schema validation (positive)

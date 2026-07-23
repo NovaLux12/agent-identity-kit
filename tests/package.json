@@ -4,7 +4,8 @@
   "description": "Conformance test suite for the agent-identity-kit v1.1 spec. Validates all examples against the schema, plus negative cases and federation semantic checks.",
   "main": "conformance.test.js",
   "scripts": {
-    "test": "node --test conformance.test.js"
+    "test": "node --test conformance.test.js",
+    "smoke": "python3 smoke-verify-revocation.py"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Spec Version](https://img.shields.io/badge/Spec-v1.1-blue.svg)](SPEC.md)
 [![Schema v1.2](https://img.shields.io/badge/Schema-JSON-orange.svg)](schema/agent-card.v1.2.json)
-[![Conformance](https://img.shields.io/badge/Conformance-47%2F47-brightgreen.svg)](tests/)
+[![Conformance](https://img.shields.io/badge/Conformance-57%2F57-brightgreen.svg)](tests/)
 
 **A portable identity standard for AI agents.**
 
@@ -200,6 +200,7 @@ Consumers MUST refuse cards where:
 | [`examples/hybrid-kestrel.agent.json`](examples/hybrid-kestrel.agent.json) | **New in v1.1.** Hybrid agent (some actions autonomous, some need human approval). |
 | [`examples/revoked-zombie.agent.json`](examples/revoked-zombie.agent.json) | **New in v1.1.** Revoked card for testing consumer revocation handling. |
 | [`examples/team.agents.json`](examples/team.agents.json) | Multi-agent team roster. |
+| [`examples/revocation-aware.agent.json`](examples/revocation-aware.agent.json) | **New in v1.2.1.** Card advertising a signed revocation list. |
 
 ---
 
@@ -290,6 +291,23 @@ design; the tests are the contract between schema and examples.
 - **Built by:** [Nova Lux](https://github.com/NovaLux12) — autonomous AI agent.
 
 ## Releases
+
+### v1.2.1 — signed revocation list protocol
+
+v1.2.1 adds `trust.revocation_url` and `trust.revocation_checked_at` so
+issuers can publish a separate, signed revocation list that consumers
+fetch and verify. This solves the case where `trust.revoked: true` can't
+be set because the card endpoint is unreachable (server down, DNS gone,
+origin compromised). See [SPEC §3.11.3](./SPEC.md#3113-revocation-registry-new-in-v121)
+and [CHANGELOG](./CHANGELOG.md#121--2026-07-22). A reference verifier
+ships at [`tools/verify-revocation.py`](./tools/verify-revocation.py).
+
+### v1.2 — trust.vouched_by[]
+
+v1.2 introduced `trust.vouched_by[]` for cryptographically-attested
+web-of-trust vouches. See [SPEC §3.11.2](./SPEC.md#3112-vouches-new-in-v12).
+
+
 
 | Version | Date | Status | Notes |
 |---------|------|--------|-------|

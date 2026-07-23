@@ -80,6 +80,7 @@ agent to present its identity. Today:
 | **Scope** | What an agent commits to NOT do (and what it WILL do). Peer of capabilities. |
 | **Consumer** | Any agent, service, or application that reads an `agent.json` file. |
 | **Registry** | An optional index service that crawls, validates, and catalogs Agent Cards. |
+| **Revocation list** | A signed document published at `trust.revocation_url` listing one or more revoked agents. See §3.11.3. |
 
 ---
 
@@ -429,6 +430,8 @@ for detailed semantics.
 | `revoked` | boolean | OPTIONAL | **New in v1.1.** Whether this card has been revoked. Default `false`. If `true`, consumers MUST NOT trust this card. |
 | `revoked_at` | string (ISO 8601) | CONDITIONAL | **New in v1.1.** When this card was revoked. Required when `revoked: true`. |
 | `revoked_reason` | string | OPTIONAL | **New in v1.1.** Why this card was revoked. |
+| `revocation_url` | string (URI) | OPTIONAL | **New in v1.2.1.** URL of a signed revocation list. SHOULD be HTTPS, SHOULD be on a different origin than the card endpoint, and SHOULD live under a `.well-known/` path. See [§3.11.3](#3113-revocation-registry-new-in-v121). |
+| `revocation_checked_at` | string (ISO 8601) | OPTIONAL | **New in v1.2.1.** When the consumer last fetched and verified the revocation list. Cache-invalidation hint only — consumers MUST re-check on their own schedule and MUST refuse cards that advertise a `revocation_checked_at` in the future. |
 | `ttl` | integer | OPTIONAL | Recommended cache duration in seconds. Default 3600. |
 
 #### 3.11.1 Attestations
@@ -523,6 +526,129 @@ function verifyVouch(vouch, voucherCard) {
 }
 ```
 
+#### 3.11.3 Revocation registry (New in v1.2.1)
+
+`trust.revoked: true` is the in-card revocation flag. But it has a
+fundamental limitation: it requires the card itself to be updated. If
+the card endpoint is unreachable (server down, DNS gone, origin
+compromised, network partition), consumers cannot tell whether the card
+is stale-but-good or stale-and-revoked.
+
+**`trust.revocation_url` solves this.** It points at a signed
+revocation list published by the issuer — a separate document the
+issuer can update without touching the card. If the list is
+cryptographically valid and lists the agent, the card is revoked —
+regardless of what `trust.revoked` says.
+
+The fields:
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `revocation_url` | no | URI string | Where the signed list lives. SHOULD be HTTPS, SHOULD be on a different origin than the card endpoint, SHOULD be under `.well-known/`. |
+| `revocation_checked_at` | no | ISO 8601 string | When the consumer last fetched and verified the list. Cache-invalidation hint only — consumers MUST re-check on their own schedule. |
+
+**The revocation list format** at `revocation_url`:
+
+```json
+{
+  "issuer": "@alice@example.com",
+  "issued_at": "2026-07-20T12:00:00Z",
+  "ttl": 86400,
+  "revocations": [
+    {
+      "subject": "@bob@example.com",
+      "scope": ["code-generation"],
+      "reason": "compromised-credentials",
+      "effective_from": "2026-07-15T00:00:00Z",
+      "effective_until": null
+    }
+  ],
+  "signature": "ed25519:0x..."
+}
+```
+
+**Per-revocation entry:**
+
+| Field | Required | Type | Notes |
+|-------|----------|------|-------|
+| `subject` | yes | handle | Fediverse-style handle (`@name@domain`) of the revoked agent. Match against the card's `agent.handle`. |
+| `scope` | no | string or string[] | Capability names from the card's `capabilities[]` that are revoked. Omission revokes the whole agent. |
+| `reason` | no | string | Free-text reason (`compromised-credentials`, `operator-retired`, `merged-into-x`, etc.). |
+| `effective_from` | yes | ISO 8601 | When the revocation takes effect. Allows backdating for incidents discovered late. |
+| `effective_until` | no | ISO 8601 | When the revocation expires (`null` = indefinite). Use for temporary suspensions. |
+
+**Consumer fetch flow:**
+
+1. Fetch `revocation_url`. On any HTTP error (5xx, timeout, TLS
+   failure), the consumer MUST treat the card as **status unknown**,
+   not trusted. Failure to fetch is not the same as "not revoked."
+2. Verify `signature` against the issuer's well-known public key
+   (the same key used to sign `vouched_by` entries — see §3.11.2).
+   On signature failure, refuse the list and treat the card as
+   status unknown.
+3. Check `now < issued_at + ttl`. If the list is stale, refuse it
+   and re-fetch (or treat the card as status unknown if a fresh
+   fetch also fails).
+4. Look up the subject. For each matching entry, check
+   `effective_from <= now <= effective_until`. If any such entry
+   has `scope` set, only the listed capabilities are revoked —
+   the rest remain trusted. If `scope` is absent, the entire card
+   is revoked.
+5. Update `revocation_checked_at` to the local clock time at fetch.
+   Consumers SHOULD refuse cards whose `revocation_checked_at` is
+   in the future (this is a clock-skew or replay attack signal).
+
+**Required semantics (consumers MUST enforce):**
+
+1. **Different-origin preference.** A revocation list at the same
+   origin as the card endpoint is only marginally better than
+   `trust.revoked: true` — a compromised card server can suppress
+   it. Issuers SHOULD publish on a different origin. Consumers
+   SHOULD log a warning when the origins match but MAY still trust
+   the list.
+2. **List staleness = unknown, not trusted.** A list older than
+   `issued_at + ttl` MUST be treated as if no list exists. This
+   prevents indefinite trust on a stale list.
+3. **Scope is additive.** A revocation with `scope: ["a", "b"]`
+   revokes capabilities `a` and `b` only. Consumers MUST continue
+   trusting other capabilities. Consumers MUST refuse any
+   capability listed under `scope` until they can verify the
+   revocation has not expired (`effective_until` passed).
+4. **Clock-skew rejection.** Cards whose `revocation_checked_at`
+   is in the future relative to the consumer's clock MUST be
+   treated as if `revocation_url` is absent. This is a
+   tamper-signal — only the issuer (in cooperation with the list
+   publisher) should be able to advance that field, and a future
+   value is never legitimate.
+5. **Issuer key discovery.** The signature is verified against the
+   issuer's well-known public key. The issuer MUST be discoverable
+   via the same `agent.json` discovery rules (§2) and MUST expose
+   a public key. v1.2.1 reuses the `ed25519` scheme from `vouched_by`
+   (§3.11.2); a separate key infrastructure is intentionally out
+   of scope.
+
+**Reference implementation:** A small Python reference verifier is
+shipped at `tools/verify-revocation.py`. It demonstrates the fetch →
+verify → check flow end-to-end. Consumers are encouraged to port the
+logic to their preferred language; the spec is the contract, not the
+reference code.
+
+**Out of scope (deliberately):**
+
+- **Multi-issuer revocation aggregators.** Federation of revocation
+  lists across issuers is a v1.3+ topic.
+- **Revocation history.** Only the current snapshot is in scope.
+  Historical revocations (what was revoked last week) are not
+  preserved by the spec; consumers wanting history need their own
+  archive.
+- **Revoking vouches.** A vouch can be implicitly untrusted by
+  the voucher posting a follow-up revocation against their own
+  handle, but the spec does not define a "vouch retraction"
+  primitive.
+- **Push-based revocation.** The protocol is poll-based. Push
+  (webhooks, pubsub) is a transport concern that consumers layer
+  on top — there is no spec-level requirement to support it.
+
 ### 3.12 `links` Object
 
 **Documented in v1.1; was schema-only in v1.0.** Additional links.
@@ -602,6 +728,27 @@ consumers MUST refuse cards where:
 - `trust.revoked: true`
 - `scope.impersonates_humans` is absent, `null`, or `true`
 - `agent.kind` is `unknown` (absent) AND the consumer requires kind clarity
+
+### 4.6 Revocation registry checks (v1.2.1)
+
+When a card advertises `trust.revocation_url`, consumers MUST additionally
+follow §3.11.3's fetch → verify → check flow before treating the card
+as live. A revoked entry with no `scope` revokes the whole card; a
+revoked entry with `scope: [...]` revokes only the listed capabilities.
+
+A card is **status unknown** (not trusted) when:
+
+- The list fetch fails (network, TLS, 5xx).
+- The list signature fails verification.
+- The list is stale (`now >= issued_at + ttl`).
+- `revocation_checked_at` on the card is in the future relative to the
+  consumer's clock.
+
+Consumers SHOULD log a warning when `revocation_url` is on the same
+origin as the card endpoint (the threat model collapses to "the same
+thing that signs the card also signs the revocation"); they MAY
+continue trusting the list, but the warning is the spec-level nudge
+toward a multi-origin deployment.
 
 ---
 
@@ -741,6 +888,36 @@ Key takeaways embedded in this spec:
 5. Verifiable claims. Don't trust self-declared identity — verify it.
 6. **v1.1:** revocation handling. A compromised card must be revocable
    without taking the file offline.
+
+### 7.6 Revocation registry security (v1.2.1)
+
+`trust.revocation_url` introduces a new attack surface. Mitigations
+the spec mandates or recommends:
+
+- **Signature verification is mandatory.** Consumers MUST verify
+  the list's `signature` against the issuer's well-known public key
+  before honoring any entry. An unsigned or unverifiable list is
+  treated as if no list exists — the consumer falls back to
+  `trust.revoked` and the rest of the in-card trust signals.
+- **Different-origin publishing.** Issuers SHOULD publish the list
+  at a different origin than the card. A compromised card server
+  can update `trust.revoked: false` to mask a real revocation;
+  it usually cannot update the revocation list on a separate origin.
+- **TTL is a backstop, not a feature.** A list with `ttl: 31536000`
+  (one year) ties consumers to a long window of trust on a stale
+  list. Issuers SHOULD set `ttl` to the smallest value that
+  matches their operational cadence (typically 3600–86400 seconds).
+  Consumers MUST treat `now >= issued_at + ttl` as "list stale, do
+  not trust."
+- **`revocation_checked_at` is informational.** Consumers MUST NOT
+  trust cards that advertise a `revocation_checked_at` value in the
+  future (clock-skew or replay signal). The field exists so other
+  consumers can reason about freshness without a round-trip; it is
+  not a substitute for re-checking.
+- **List payload size.** Issuers SHOULD keep the list small (under
+  a few KB for typical deployments). The protocol does not specify a
+  hard limit, but unbounded lists invite DoS via memory pressure on
+  consumers. Future versions may add pagination.
 
 ---
 
