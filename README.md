@@ -1,7 +1,7 @@
 # Agent Identity Kit 🪪
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Spec Version](https://img.shields.io/badge/Spec-v1.1-blue.svg)](SPEC.md)
+[![Spec Version](https://img.shields.io/badge/Spec-v1.2.1-blue.svg)](SPEC.md)
 [![Schema v1.2](https://img.shields.io/badge/Schema-JSON-orange.svg)](schema/agent-card.v1.2.json)
 [![Conformance](https://img.shields.io/badge/Conformance-57%2F57-brightgreen.svg)](tests/)
 
@@ -88,14 +88,16 @@ legacy v1.0 output.
 cd tests && npm install && npm test
 ```
 
-26 tests. Validates every example file, every negative case, and every
+57 tests. Validates every example file, every negative case, and every
 federation semantic check. **All examples in this repo MUST pass.** If
 you change the schema and break an example, the test fails — that's the
 point.
 
 ---
 
-## What v1.1 adds (the additive delta)
+## What's new in v1.2.1
+
+### v1.1 — kind, operator, scope, revocation, localisation
 
 **New fields** (all OPTIONAL, every v1.0 card remains valid):
 
@@ -128,6 +130,19 @@ point.
 - Full rewrite of `SPEC.md` with no internal drift.
 - `FORK_NOTES.md` documents the fork rationale and rebase policy.
 - `MIGRATION.md` for v1.0 → v1.1 migration.
+
+### v1.2 — trust.vouched_by[] (web-of-trust vouches)
+
+Cryptographically-attested reputation claims. See [SPEC §3.11.2](./SPEC.md#3112-vouches-new-in-v12).
+
+### v1.2.1 — trust.revocation_url + trust.revocation_checked_at
+
+Signed revocation list protocol. Issuers can publish a separate, signed
+revocation list that consumers fetch and verify independently of the
+card endpoint. Solves the case where `trust.revoked: true` can't be set
+because the card endpoint is unreachable. Reference verifier at
+[`tools/verify-revocation.py`](./tools/verify-revocation.py). See
+[SPEC §3.11.3](./SPEC.md#3113-revocation-registry-new-in-v121).
 - Conformance test suite (`tests/conformance.test.js`).
 
 See [`CHANGELOG.md`](./CHANGELOG.md) for the full delta.
@@ -248,7 +263,7 @@ agent-identity-kit/
 │       ├── init.sh                        # interactive card generator (v1.1)
 │       └── validate.sh                    # schema + strict semantic validator
 ├── tests/
-│   ├── conformance.test.js                # 26 tests, all green
+│   ├── conformance.test.js                # 57 tests, all green
 │   ├── package.json
 │   └── README.md
 ├── .github/workflows/test.yml             # CI runs conformance on every PR
@@ -300,16 +315,11 @@ origin compromised). See [SPEC §3.11.3](./SPEC.md#3113-revocation-registry-new-
 and [CHANGELOG](./CHANGELOG.md#121--2026-07-22). A reference verifier
 ships at [`tools/verify-revocation.py`](./tools/verify-revocation.py).
 
-### v1.2 — trust.vouched_by[]
-
-v1.2 introduced `trust.vouched_by[]` for cryptographically-attested
-web-of-trust vouches. See [SPEC §3.11.2](./SPEC.md#3112-vouches-new-in-v12).
-
-
-
 | Version | Date | Status | Notes |
 |---------|------|--------|-------|
-| [v1.1.0](https://github.com/NovaLux12/agent-identity-kit/releases/tag/v1.1.0) | 2026-07-02 | ✅ Stable | First release of the Nova Lux fork. Adds `agent.kind`, `operator`, `scope`, `revocation`, localisation. Non-breaking. 26/26 conformance tests. |
+| [v1.2.1](https://github.com/NovaLux12/agent-identity-kit/releases/tag/v1.2.1) | 2026-07-23 | ✅ Stable | Signed revocation list protocol. Adds `trust.revocation_url` + `trust.revocation_checked_at`. 57/57 conformance tests. |
+| [v1.2.0](https://github.com/NovaLux12/agent-identity-kit/releases/tag/v1.2.0) | 2026-07-19 | ✅ Stable | Web-of-trust vouches. Adds `trust.vouched_by[]`. 47/47 conformance tests. |
+| [v1.1.0](https://github.com/NovaLux12/agent-identity-kit/releases/tag/v1.1.0) | 2026-07-02 | ✅ Stable | First release of the Nova Lux fork. Adds `agent.kind`, `operator`, `scope`, `revocation`, localisation. Non-breaking. |
 | v1.0.0 (upstream) | 2026-02-02 | ⚠️  Frozen | Original Team Reflectt release. Frozen — see FORK_NOTES.md. |
 
 ---
