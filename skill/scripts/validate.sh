@@ -11,8 +11,9 @@ set -euo pipefail
 #   --v10           Force v1.0 schema validation regardless of card version
 #   --v11           Force v1.1 schema validation regardless of card version
 #   --v12           Force v1.2 schema validation regardless of card version
+#   --v13           Force v1.3 schema validation regardless of card version
 #
-# Supported versions: v1.0, v1.1, v1.2 (additive, backward-compatible).
+# Supported versions: v1.0, v1.1, v1.2, v1.3 (additive, backward-compatible).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -44,6 +45,10 @@ while [[ $# -gt 0 ]]; do
       FORCE_VERSION="1.2"
       shift
       ;;
+    --v13)
+      FORCE_VERSION="1.3"
+      shift
+      ;;
     -*)
       echo "Unknown flag: $1" >&2
       exit 1
@@ -56,10 +61,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "$FILE" ]; then
-  echo "Usage: validate.sh <agent.json> [--schema <path>] [--strict] [--v10|--v11|--v12]"
+  echo "Usage: validate.sh <agent.json> [--schema <path>] [--strict] [--v10|--v11|--v12|--v13]"
   echo ""
   echo "Auto-detects the card's spec version and validates against the matching schema."
-  echo "Supports v1.0, v1.1, and v1.2 cards."
+  echo "Supports v1.0, v1.1, v1.2, and v1.3 cards."
   exit 1
 fi
 
@@ -97,6 +102,8 @@ elif [ "$CARD_TYPE" == "team" ] && [ "$CARD_VERSION" == "1.1" ]; then
   SCHEMA="$REPO_ROOT/schema/agents.v1.1.json"
 elif [ "$CARD_TYPE" == "team" ] && [ "$CARD_VERSION" == "1.0" ]; then
   SCHEMA="$REPO_ROOT/schema/agents.json"
+elif [ "$CARD_VERSION" == "1.3" ]; then
+  SCHEMA="$REPO_ROOT/schema/agent-card.v1.3.json"
 elif [ "$CARD_VERSION" == "1.2" ]; then
   SCHEMA="$REPO_ROOT/schema/agent-card.v1.2.json"
 elif [ "$CARD_VERSION" == "1.1" ]; then
@@ -104,7 +111,7 @@ elif [ "$CARD_VERSION" == "1.1" ]; then
 elif [ "$CARD_VERSION" == "1.0" ]; then
   SCHEMA="$REPO_ROOT/schema/agent.schema.json"
 else
-  echo "❌ Unknown card version: $CARD_VERSION (expected 1.0, 1.1, or 1.2)"
+  echo "❌ Unknown card version: $CARD_VERSION (expected 1.0, 1.1, 1.2, or 1.3)"
   exit 1
 fi
 
@@ -188,7 +195,7 @@ if '$CARD_TYPE' == 'card':
 
 # Federation check 2 & 3: apply to v1.1 AND v1.2 individual cards, not team indexes.
 # v1.2 is additive over v1.1 — the federation invariants don't change.
-if '$CARD_TYPE' == 'card' and ('$CARD_VERSION' == '1.1' or '$CARD_VERSION' == '1.2'):
+if '$CARD_TYPE' == 'card' and ('$CARD_VERSION' in ('1.1', '1.2', '1.3')):
     scope = data.get('scope', {})
     impersonates = scope.get('impersonates_humans', None)
     if impersonates is None:

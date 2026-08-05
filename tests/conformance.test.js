@@ -32,6 +32,7 @@ const addFormats = require('ajv-formats');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const SCHEMA_V11 = path.join(REPO_ROOT, 'schema', 'agent-card.v1.1.json');
 const SCHEMA_V12 = path.join(REPO_ROOT, 'schema', 'agent-card.v1.2.json');
+const SCHEMA_V13 = path.join(REPO_ROOT, 'schema', 'agent-card.v1.3.json');
 const SCHEMA_V10 = path.join(REPO_ROOT, 'schema', 'agent.schema.json');
 const SCHEMA_TEAM_V11 = path.join(REPO_ROOT, 'schema', 'agents.v1.1.json');
 const EXAMPLES_DIR = path.join(REPO_ROOT, 'examples');
@@ -512,7 +513,8 @@ test('v1.2 schema accepts all v1.1 example cards (back-compat)', () => {
   const validateV12 = compileValidator(SCHEMA_V12);
   const examples = fs.readdirSync(EXAMPLES_DIR)
     .filter(f => f.endsWith('.agent.json'))
-    .filter(f => f !== 'vouched-by-bob.agent.json');
+    .filter(f => f !== 'vouched-by-bob.agent.json')
+    .filter(f => f !== 'marketplace.agent.json');  // v1.3-only; excluded like vouched-by-bob
   for (const ex of examples) {
     const card = loadJson(path.join(EXAMPLES_DIR, ex));
     const valid = validateV12(card);
@@ -864,3 +866,103 @@ test('semantic: revocation_checked_at in the future is a tamper signal (SPEC §3
   const isFuture = checkedAt.getTime() > now.getTime();
   assert.strictEqual(isFuture, true, 'future revocation_checked_at must be detectable');
 });
+
+// ─── v1.3: capability marketplace offers[] / seeks[] ───────────────────────
+// v1.3 adds optional top-level offers[] and seeks[] as discovery hints. They
+// are declarative metadata (SPEC §3.13); settlement is a separate protocol.
+// Cards without them keep validating (backward-compatible).
+
+function v13Base() {
+  return {
+    version: '1.3',
+    agent: {
+      name: 'MarketTest',
+      handle: '@markettest@example.com',
+      description: 'v1.3 marketplace test card',
+      kind: 'autonomous-ai-agent'
+    },
+    operator: null,
+    owner: { name: 'MarketTest Operator' },
+    capabilities: ['code-generation', 'image-analysis'],
+    offers: [
+      { capability: 'code-generation', endpoint: 'https://mt.example.com/v1/code', auth: 'bearer', rate_limit: '50/hour' }
+    ],
+    seeks: [
+      { capability: 'image-analysis', min_quality: 'production', negotiable: true }
+    ],
+    created_at: '2026-08-05T00:00:00Z',
+    updated_at: '2026-08-05T00:00:00Z'
+  };
+}
+
+test('marketplace.agent.json example validates against v1.3 schema', () => {
+  const validate = compileValidator(SCHEMA_V13);
+  const card = loadJson(path.join(EXAMPLES_DIR, 'marketplace.agent.json'));
+  const valid = validate(card);
+  if (!valid) console.error('Validation errors:', validate.errors);
+  assert.strictEqual(valid, true, 'marketplace.agent.json must validate');
+});
+
+test('v1.3 additive: v1.2 example validates against v1.3 schema (backward-compatible)', () => {
+  // Same invariant as the v1.2 additive test — a v1.2 card (no offers/seeks)
+  // must still validate under v1.3.
+  const validate = compileValidator(SCHEMA_V13);
+  const card = loadJson(path.join(EXAMPLES_DIR, 'kai.agent.json'));
+  const valid = validate(card);
+  if (!valid) console.error('Validation errors:', validate.errors);
+  assert.strictEqual(valid, true, 'kai.agent.json must validate against v1.3 (additive)');
+});
+
+test('v1.3: offers entry missing endpoint is rejected', () => {
+  const validate = compileValidator(SCHEMA_V13);
+  const card = v13Base();
+  card.offers = [{ capability: 'code-generation' }];  // endpoint is REQUIRED
+  const valid = validate(card);
+  assert.strictEqual(valid, false, 'an offer without an endpoint must be rejected');
+});
+
+test('v1.3: offers entry with unknown extra field is rejected', () => {
+  const validate = compileValidator(SCHEMA_V13);
+  const card = v13Base();
+  card.offers = [
+    { capability: 'code-generation', endpoint: 'https://mt.example.com/v1/code', bogus: 'typo' }
+  ];
+  const valid = validate(card);
+  assert.strictEqual(valid, false, 'extra field must be rejected (additionalProperties: false)');
+});
+
+test('v1.3: seeks capability that is not kebab-case is rejected', () => {
+  const validate = compileValidator(SCHEMA_V13);
+  const card = v13Base();
+  card.seeks = [{ capability: 'Image Analysis' }];  // invalid pattern
+  const valid = validate(card);
+  assert.strictEqual(valid, false, 'non-kebab capability tag must be rejected');
+});
+
+test('v1.3: seeks negotiable must be a boolean', () => {
+  const validate = compileValidator(SCHEMA_V13);
+  const card = v13Base();
+  card.seeks = [{ capability: 'image-analysis', negotiable: 'yes' }];  // string, not boolean
+  const valid = validate(card);
+  assert.strictEqual(valid, false, 'negotiable must be boolean');
+});
+
+test('v1.3: offers entry that is not an object is rejected', () => {
+  const validate = compileValidator(SCHEMA_V13);
+  const card = v13Base();
+  card.offers = ['not-an-object'];
+  const valid = validate(card);
+  assert.strictEqual(valid, false, 'offers items must be objects');
+});
+
+test('v1.3: more than 20 offers entries is rejected (bloat bound)', () => {
+  const validate = compileValidator(SCHEMA_V13);
+  const card = v13Base();
+  card.offers = Array.from({ length: 21 }, (_, i) => ({
+    capability: `cap-${i}`,
+    endpoint: `https://mt.example.com/v1/${i}`
+  }));
+  const valid = validate(card);
+  assert.strictEqual(valid, false, 'more than maxItems(20) offers must be rejected');
+});
+

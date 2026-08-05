@@ -1,9 +1,9 @@
 # Agent Identity Kit 🪪
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Spec Version](https://img.shields.io/badge/Spec-v1.2.1-blue.svg)](SPEC.md)
-[![Schema v1.2](https://img.shields.io/badge/Schema-JSON-orange.svg)](schema/agent-card.v1.2.json)
-[![Conformance](https://img.shields.io/badge/Conformance-57%2F57-brightgreen.svg)](tests/)
+[![Spec Version](https://img.shields.io/badge/Spec-v1.3.0-blue.svg)](SPEC.md)
+[![Schema v1.3](https://img.shields.io/badge/Schema-JSON-orange.svg)](schema/agent-card.v1.3.json)
+[![Conformance](https://img.shields.io/badge/Conformance-65%2F65-brightgreen.svg)](tests/)
 
 **A portable identity standard for AI agents.**
 
@@ -18,8 +18,9 @@ agent-identity-kit spec. It was originally forked from
 `reflectt/agent-identity-kit` (which has been silent since 2026-02-05) and
 has since evolved independently through **v1.1** (internal drift fixes,
 scope, revocation, kind distinction, localisation), **v1.2** (web-of-trust
-vouches), and **v1.2.1** (signed revocation list protocol). Maintenance
-and decision-making happen here.
+vouches), **v1.2.1** (signed revocation list protocol), and **v1.3**
+(capability-marketplace discovery hints — `offers[]` / `seeks[]`).
+Maintenance and decision-making happen here.
 
 Historical provenance (fork rationale, rebase policy, drift inventory)
 lives in [`FORK_NOTES.md`](./FORK_NOTES.md). For what's new, see
