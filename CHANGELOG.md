@@ -4,9 +4,46 @@ All notable changes to this specification are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-08-05
+
+### Added
+
+- **Capability marketplace discovery hints — `offers[]` and `seeks[]`**
+  (optional top-level; closes [#6](https://github.com/NovaLux12/agent-identity-kit/issues/6)).
+  Lets an agent *advertise* what it can do for other agents (`offers`)
+  and *seek* what it needs (`seeks`).
+  - **Discovery-only design (Option C):** the card advertises intent;
+    actual negotiation/settlement is a separate `agent-marketplace`
+    protocol (temporal, bilateral, not a static-identity concern), and
+    cross-card matching lives in a directory service. No pricing field —
+    deliberately punted, the schema has no notion of money.
+  - **`offers[]` item:** `capability` (REQUIRED) + `endpoint` (REQUIRED),
+    optional `auth`, `rate_limit`. `additionalProperties: false`.
+  - **`seeks[]` item:** `capability` (REQUIRED), optional `min_quality`,
+    `negotiable` (boolean). `additionalProperties: false`.
+  - **Bloat bound:** both arrays cap at `maxItems: 20`. Staleness is
+    bounded by directory refresh + `updated_at`, not unbounded card growth.
+  - **Backward-compatible:** v1.0/v1.1/v1.2 cards validate unchanged;
+    the version enum adds `"1.3"`. Cards only bump `version` when they
+    opt into the new fields.
+- **`schema/agent-card.v1.3.json`** — new schema file (v1.2 + offers/seeks).
+- **`examples/marketplace.agent.json`** — end-to-end demonstration.
+- **`skill/scripts/validate.sh` v1.3 support** — `--v13` flag, auto-detection
+  branch, strict federation checks now run on v1.3 cards.
+- **Eight new conformance tests** (57 → 65): marketplace example validates,
+  additive (v1.2 example under v1.3), missing-endpoint rejected, unknown
+  extra field rejected, non-kebab capability rejected, non-boolean
+  `negotiable` rejected, non-object item rejected, >20 offers rejected.
+
+### Changed
+
+- **SPEC.md header → v1.3.0**, §3.1 version-field + `offers`/`seeks` table
+  rows, §3.6 pointer, new §3.13 (`offers` and `seeks` cap. marketplace),
+  §10.2 migration note. (Existing v1.2 web-of-trust/revocation SPEC
+  documentation lag is tracked separately in #13.)
+
 ---
 
-## [1.2.1] — 2026-07-22
 
 ### Added
 

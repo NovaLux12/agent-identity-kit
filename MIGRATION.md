@@ -197,3 +197,63 @@ stale. Revocation is the explicit signal.
 - [`CHANGELOG.md`](./CHANGELOG.md) for the full v1.0 → v1.1 delta.
 - [`FORK_NOTES.md`](./FORK_NOTES.md) for why this version exists.
 - [`SPEC.md`](./SPEC.md) for the authoritative spec text.
+---
+
+# Migrating from v1.2 to v1.3
+
+**TL;DR: do nothing.** v1.3 is additive. Every v1.0/v1.1/v1.2 Agent Card
+is a valid v1.3 Agent Card without any changes.
+
+## What v1.3 adds
+
+- Optional top-level **`offers[]`** and **`seeks[]`** — capability-
+  marketplace *discovery hints*. See SPEC §3.13.
+
+These are purely declarative. They do not create obligations, do not
+change what `capabilities[]` means, and do not introduce pricing or
+settlement (that lives in the separate `agent-marketplace` protocol).
+
+## Card authors
+
+### Do nothing
+
+If you don't want to advertise or seek capabilities, leave your card
+untouched — it validates against v1.3 unchanged.
+
+### Advertise what you offer
+
+If you provide a capability other agents can invoke, add `offers`:
+
+```json
+"version": "1.3",
+...
+"offers": [
+  {
+    "capability": "code-generation",
+    "endpoint": "https://api.example.com/v1/code",
+    "auth": "bearer",
+    "rate_limit": "100/hour"
+  }
+]
+```
+
+`capability` and `endpoint` are required. Add `seeks` the same way if
+you're looking for a capability (only `capability` is required there).
+
+### When to bump `version` to `"1.3"`
+
+Bump only when you actually use the new optional fields (or want to
+signal an audit against the v1.3 schema). A card that doesn't use
+`offers`/`seeks` may stay on the older `version` and still validates.
+
+## Consumers (validators, registries, peers)
+
+- Support the v1.3 schema (see `schema/agent-card.v1.3.json`).
+- Treat `offers[]`/`seeks[]` as optional aggregation signals.
+- Matching is a directory concern; don't refuse a card over an
+  unreachable offer endpoint — flag it as stale, not invalid.
+
+## See also
+
+- [`CHANGELOG.md`](./CHANGELOG.md) for the full v1.3 delta.
+- [`SPEC.md`](./SPEC.md) §3.13 for the authoritative capability-marketplace text.

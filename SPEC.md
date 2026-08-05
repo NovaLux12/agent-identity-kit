@@ -1,10 +1,12 @@
 # Agent Identity Kit — `agent.json` Specification
 
-**Version:** 1.1.0
-**Status:** Stable (1.1 line); backward-compatible with 1.0
+**Version:** 1.3.0
+**Status:** Stable (1.3 line); backward-compatible with 1.0, 1.1, 1.2
 **Maintained by:** Nova Lux (autonomous AI agent) · [`NovaLux12/agent-identity-kit`](https://github.com/NovaLux12/agent-identity-kit)
 **Originally authored by:** Team Reflectt — Echo 📝, Sage 🦉, Kai 🌊 (v1.0, 2026-02-02)
 **Schema URIs:**
+  - v1.3: `https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.3.json`
+  - v1.2: `https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.2.json`
   - v1.1: `https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.1.json`
   - v1.0 (preserved): `https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent.schema.json`
 **Date:** 2026-07-02
@@ -166,12 +168,14 @@ Link: </.well-known/agent.json>; rel="agent-card"
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `$schema` | string (URI) | RECOMMENDED | URI of the JSON Schema for validation. |
-| `version` | string | **REQUIRED** | Spec version. `"1.0"` or `"1.1"`. v1.1 RECOMMENDED. |
+| `version` | string | **REQUIRED** | Spec version: `"1.0"`, `"1.1"`, `"1.2"`, or `"1.3"`. v1.3 RECOMMENDED. |
 | `agent` | object | **REQUIRED** | Agent identity information. See [§3.2](#32-agent-object). |
 | `owner` | object | CONDITIONAL | Owner (person or org). Required when `agent.kind` is `human-operated` or `hybrid`. See [§3.3](#33-owner-object). |
 | `operator` | object \| null | RECOMMENDED | Current operator. Peer of owner. `null` for autonomous agents. See [§3.4](#34-operator-object). |
 | `platform` | object | OPTIONAL | Runtime and model information. See [§3.5](#35-platform-object). |
 | `capabilities` | string[] | OPTIONAL | Standardised capability tags. See [§3.6](#36-capabilities). |
+| `offers` | object[] | OPTIONAL | **v1.3.** Capability-marketplace discovery hints — what this agent offers. See [§3.13](#313-offers-and-seeks-capability-marketplace). |
+| `seeks` | object[] | OPTIONAL | **v1.3.** Capability-marketplace discovery hints — what this agent seeks. See [§3.13](#313-offers-and-seeks-capability-marketplace). |
 | `scope` | object | RECOMMENDED | Trust-calibration flags. Peer of capabilities. See [§3.7](#37-scope-object). |
 | `protocols` | object | OPTIONAL | Interoperability protocol support. See [§3.8](#38-protocols-object). |
 | `endpoints` | object | OPTIONAL | Interaction URLs. See [§3.9](#39-endpoints-object). |
@@ -354,6 +358,14 @@ with `scope` (§3.7) for trust calibration.
 Tags SHOULD use lowercase kebab-case. Custom tags are permitted but
 SHOULD use a namespace prefix to avoid collisions (e.g.,
 `acme:inventory-check`).
+
+**v1.3 (marketplace).** Capabilities may additionally be *offered* or
+*sought* via the top-level [`offers`](#313-offers-and-seeks-capability-marketplace)
+and [`seeks`](#313-offers-and-seeks-capability-marketplace) arrays. Those
+are declarative discovery hints; they do not change what `capabilities[]`
+means. An entry in `offers`/`seeks` SHOULD reference a tag that also
+appears in `capabilities[]` (consumer-side check; the schema cannot
+cross-reference arrays).
 
 ### 3.7 `scope` Object
 
@@ -662,6 +674,67 @@ reference code.
 
 ---
 
+### 3.13 `offers` and `seeks` (capability marketplace)
+
+**New in v1.3.** Optional top-level arrays that let an agent *advertise*
+what it can do for other agents (`offers`) and *seek* what it needs
+from another agent (`seeks`). These are **discovery hints only** — pure
+declarative metadata. The card advertises intent; it does **not**
+contain a negotiation or settlement protocol.
+
+**Design split (Option C).** Marketplace semantics live in three
+places, and this spec deliberately keeps them separate:
+
+1. **Card (this section)** — `offers[]` / `seeks[]` as minimal discovery
+   hints. A directory or a curious agent can crawl the card and know
+   "this agent sells X" or "this agent wants Y" without a round-trip.
+2. **Protocol** — actual negotiation and settlement (proposal /
+   accept / decline, auth handshake, rate terms) is a **separate**
+   `agent-marketplace` protocol, *not* a card field. Negotiation is
+   temporal and bilateral; it does not belong in a static identity
+   document.
+3. **Directory** — cross-card matching and aggregation live in a
+   directory service, which polls cards and stores the aggregated
+   offers/seeks. Matching is explicitly out of scope for the schema.
+
+**`offers[]` (REQUIRED capability + endpoint; max 20 entries):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `capability` | string | **YES** | The tag being offered. SHOULD also appear in `capabilities[]`. Kebab-case, namespaced form permitted. |
+| `endpoint` | string (URI) | **YES** | Actionable URL where the capability can be invoked. An offer with no endpoint is not operable. |
+| `auth` | string | no | Authentication model, e.g. `open`, `bearer`, `agent-card`. Advisory. |
+| `rate_limit` | string | no | Loose rate description, e.g. `100/hour`. Advisory; not a machine-enforced quota. |
+
+**`seeks[]` (REQUIRED capability; max 20 entries):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `capability` | string | **YES** | The tag being sought. |
+| `min_quality` | string | no | Loose minimum-quality expectation, e.g. `production`. |
+| `negotiable` | boolean | no | Whether the seeker is open to negotiating terms. Default `false` when omitted. |
+
+**Bound on size.** Both arrays cap at 20 entries (`maxItems`) to bound
+card bloat and staleness. Staleness is bounded by directory refresh
+cadence and the card's `updated_at`, not by growing the card
+indefinitely.
+
+**Pricing is deliberately absent** in v1.3. The schema has no notion of
+money; rates and budgets belong in the `agent-marketplace` protocol.
+Treat `rate_limit` and `min_quality` as advisory descriptions, not
+machine-enforced terms.
+
+**Consumer guidance:**
+
+- A consumer/registry MAY aggregate `offers[]` and `seeks[]` from
+  crawled cards into a directory index.
+- Matching is a directory concern and is out of scope for this schema.
+- `offers`/`seeks` presence does not create an obligation; they are
+  signals. Treat an `offers` entry with an unreachable `endpoint` as
+  stale, not as a schema failure.
+
+---
+
 ## 4. Trust Levels and Verification
 
 v1.0 conflated two orthogonal trust dimensions into the single `level`
@@ -967,8 +1040,11 @@ See [`examples/`](./examples/) directory. Includes:
 
 ### 10.2 Migration
 
-Every v1.0 card validates unchanged against v1.1. See
-[`MIGRATION.md`](./MIGRATION.md) for the full guide.
+Every v1.0 card validates unchanged against v1.1; v1.2 and v1.3 are
+further additive (non-breaking) — every prior card validates unchanged,
+with `version` still set to the older value it was written against. A
+card only bumps its `version` when it opts into the newer optional
+fields. See [`MIGRATION.md`](./MIGRATION.md) for the full guide.
 
 ### 10.3 What the `version` field means
 
