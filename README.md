@@ -70,7 +70,7 @@ so the spec actually models reality.
 ./skill/scripts/validate.sh path/to/your-agent.json --strict
 ```
 
-Validates against v1.0, v1.1, or v1.2 schema (auto-detects from `version` field).
+Validates against v1.0, v1.1, v1.2, or v1.3 schema (auto-detects from `version` field).
 The `--strict` flag runs additional federation checks: revoked cards
 warn, cards without `scope.impersonates_humans: false` warn.
 
@@ -89,14 +89,22 @@ legacy v1.0 output.
 cd tests && npm install && npm test
 ```
 
-57 tests. Validates every example file, every negative case, and every
+65 tests. Validates every example file, every negative case, and every
 federation semantic check. **All examples in this repo MUST pass.** If
 you change the schema and break an example, the test fails — that's the
 point.
 
 ---
 
-## What's new in v1.2.1
+## What's new in v1.3
+
+### v1.3 — capability-marketplace discovery hints (`offers[]` / `seeks[]`)
+
+Optional top-level arrays letting an agent advertise what it can do for
+other agents (`offers`) and seek what it needs (`seeks`). Discovery-only:
+`capability` (required) + `endpoint` (required) per offer, both arrays cap
+at 20 entries, no pricing by design. See
+[SPEC §3.13](./SPEC.md#313-offers-and-seeks-capability-marketplace).
 
 ### v1.1 — kind, operator, scope, revocation, localisation
 
@@ -158,7 +166,7 @@ For the complete specification, see **[`SPEC.md`](./SPEC.md)**.
 
 | Field | Description |
 |-------|-------------|
-| `version` | Spec version (`"1.0"`, `"1.1"`, or `"1.2"`). |
+| `version` | Spec version (`"1.0"` through `"1.3"`). |
 | `agent.name` | Display name. |
 | `owner` | Required iff `agent.kind` is `human-operated` or `hybrid`. |
 
@@ -180,9 +188,10 @@ For the complete specification, see **[`SPEC.md`](./SPEC.md)**.
 | Field | Description |
 |-------|-------------|
 | `capabilities` | Standardised capability tags. |
+| `offers[]` / `seeks[]` | **v1.3.** Capability-marketplace discovery hints. |
 | `protocols` | `mcp`, `a2a`, `http`, `agent-card` version. |
 | `endpoints` | `card`, `inbox`, `status`, `api`, `health`, `llms_txt`. |
-| `trust` | `level`, `verification`, `verified_by`, `attestations`, `revoked`, `ttl`. |
+| `trust` | `level`, `verification`, `verified_by`, `attestations`, `vouched_by`, `revoked`, `revocation_url`, `ttl`. |
 | `platform` | `runtime`, `model`, `model_fast`, `model_local`, `version`, `framework`. |
 | `voice` | `name`, `style`, `preferredTTS`, `voiceId`, `sampleUrl`. |
 | `links` | `website`, `repo`, `social`, `documentation`. |
@@ -212,8 +221,10 @@ Consumers MUST refuse cards where:
 | [`examples/autonomous-nova-lux.agent.json`](examples/autonomous-nova-lux.agent.json) | **New in v1.1.** Real-world autonomous agent with kind, operator, scope. |
 | [`examples/hybrid-kestrel.agent.json`](examples/hybrid-kestrel.agent.json) | **New in v1.1.** Hybrid agent (some actions autonomous, some need human approval). |
 | [`examples/revoked-zombie.agent.json`](examples/revoked-zombie.agent.json) | **New in v1.1.** Revoked card for testing consumer revocation handling. |
+| [`examples/vouched-by-bob.agent.json`](examples/vouched-by-bob.agent.json) | **New in v1.2.** Card with a signed web-of-trust vouch. |
 | [`examples/team.agents.json`](examples/team.agents.json) | Multi-agent team roster. |
 | [`examples/revocation-aware.agent.json`](examples/revocation-aware.agent.json) | **New in v1.2.1.** Card advertising a signed revocation list. |
+| [`examples/marketplace.agent.json`](examples/marketplace.agent.json) | **New in v1.3.** Capability-marketplace `offers[]` / `seeks[]` discovery hints. |
 
 ---
 
@@ -248,15 +259,19 @@ Consumers MUST refuse cards where:
 agent-identity-kit/
 ├── schema/
 │   ├── agent.schema.json          # v1.0 schema (preserved)
-│   ├── agent-card.v1.1.json       # v1.1 schema (NEW)
-│   ├── agents.json                # v1.0 team schema (preserved)
-│   └── agents.v1.1.json           # v1.1 team schema (NEW)
+│   ├── agent-card.v1.1.json       # v1.1 schema
+│   ├── agent-card.v1.2.json       # v1.2 schema (vouched_by)
+│   ├── agent-card.v1.3.json       # v1.3 schema (current; offers/seeks)
+│   └── agents.v1.1.json           # v1.1 team schema
 ├── examples/
 │   ├── minimal.agent.json                  # v1.0 byte-compatible
 │   ├── kai.agent.json                      # full v1.1 card
 │   ├── autonomous-nova-lux.agent.json      # autonomous agent example
 │   ├── hybrid-kestrel.agent.json           # hybrid agent example
 │   ├── revoked-zombie.agent.json           # revocation fixture
+│   ├── vouched-by-bob.agent.json           # signed vouch example
+│   ├── revocation-aware.agent.json         # revocation-registry example
+│   ├── marketplace.agent.json              # v1.3 offers/seeks example
 │   └── team.agents.json                    # team index
 ├── skill/
 │   ├── SKILL.md                           # skill documentation
@@ -264,7 +279,7 @@ agent-identity-kit/
 │       ├── init.sh                        # interactive card generator (v1.1)
 │       └── validate.sh                    # schema + strict semantic validator
 ├── tests/
-│   ├── conformance.test.js                # 57 tests, all green
+│   ├── conformance.test.js                # 65 tests, all green
 │   ├── package.json
 │   └── README.md
 ├── .github/workflows/test.yml             # CI runs conformance on every PR
@@ -296,7 +311,8 @@ design; the tests are the contract between schema and examples.
 ## Links
 
 - **Spec:** [SPEC.md](./SPEC.md)
-- **v1.2 schema (current):** [schema/agent-card.v1.2.json](./schema/agent-card.v1.2.json)
+- **v1.3 schema (current):** [schema/agent-card.v1.3.json](./schema/agent-card.v1.3.json)
+- **v1.2 schema:** [schema/agent-card.v1.2.json](./schema/agent-card.v1.2.json)
 - **v1.1 schema:** [schema/agent-card.v1.1.json](./schema/agent-card.v1.1.json)
 - **v1.0 schema (preserved):** [schema/agent.schema.json](./schema/agent.schema.json)
 - **Fork rationale (historical):** [FORK_NOTES.md](./FORK_NOTES.md)

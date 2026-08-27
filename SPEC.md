@@ -191,13 +191,16 @@ top level to allow this. v1.0 schema had `additionalProperties: false`,
 which broke our own extension fields in practice. **This is the single
 most consequential schema change in v1.1.**
 
-`scope` (the trust-calibration object) also has `additionalProperties: true`
-so implementations can add their own `x_*`-prefixed scope flags (e.g.,
-`x_kestrel_requires_human_approval_for`).
+`scope` (the trust-calibration object), `protocols`, `endpoints`, and
+`links` also have `additionalProperties: true` so implementations can add
+their own keys: `x_*`-prefixed scope flags (e.g.,
+`x_kestrel_requires_human_approval_for`), additional protocol keys
+(§3.8), and additional link entries.
 
-**Other sub-objects are closed** (`additionalProperties: false`): `agent`,
-`owner`, `operator`, `platform`, `protocols`, `endpoints`, `voice`, `trust`,
-`trust.attestations[]`, `links`, `team.agents[]`, `tags[]`, `capabilities[]`.
+**The remaining sub-objects are closed** (`additionalProperties: false`):
+`agent`, `owner`, `operator`, `platform`, `voice`, `trust`,
+`trust.attestations[]`, `trust.vouched_by[]`, `offers[]`, `seeks[]`,
+`team.agents[]`, `tags[]`, `capabilities[]`.
 This catches typos. If you need to extend one of these, prefix with `x_*`
 and propose the field in the next minor version.
 
@@ -392,7 +395,7 @@ Additional `x_*`-prefixed scope flags are permitted.
 |-------|------|-------------|
 | `mcp` | boolean | Supports Model Context Protocol. |
 | `a2a` | boolean | Supports Google A2A Protocol. |
-| `agent-card` | string | Agent Card spec version supported. `"1.0"` or `"1.1"`. |
+| `agent-card` | string | Agent Card spec version supported. `"1.0"`, `"1.1"`, or `"1.2"`. |
 | `http` | boolean | Supports HTTP API endpoints. |
 
 Additional protocol keys MAY be added as the ecosystem evolves. Custom
@@ -867,6 +870,8 @@ Each entry in `agents[]`:
 Agent Cards SHOULD validate against the JSON Schema:
 
 ```
+v1.3:  https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.3.json
+v1.2:  https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.2.json
 v1.1:  https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent-card.v1.1.json
 v1.0:  https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agent.schema.json
 ```
@@ -877,11 +882,13 @@ Team indices SHOULD validate against:
 v1.1:  https://github.com/NovaLux12/agent-identity-kit/blob/main/schema/agents.v1.1.json
 ```
 
-### 6.2 Required field checks (v1.1)
+### 6.2 Required field checks
 
-A valid v1.1 Agent Card MUST contain:
+A valid Agent Card (any version) MUST contain:
 
-- `version` — `"1.0"` or `"1.1"`.
+- `version` — one of `"1.0"`, `"1.1"`, `"1.2"`, or `"1.3"` (per-version
+  enums in the schema: v1.1 accepts `1.0`/`1.1`, v1.2 adds `1.2`, v1.3
+  adds `1.3`).
 - `agent.name` — non-empty string.
 - `owner` — REQUIRED iff `agent.kind` is `human-operated` or `hybrid`.
 
@@ -1024,6 +1031,12 @@ See [`examples/`](./examples/) directory. Includes:
 - `revoked-zombie.agent.json` — **new in v1.1.** Card with
   `trust.revoked: true` for testing consumer revocation handling.
 - `team.agents.json` — multi-agent team roster.
+- `vouched-by-bob.agent.json` — **new in v1.2.** Card with a signed
+  `trust.vouched_by[]` web-of-trust vouch.
+- `revocation-aware.agent.json` — **new in v1.2.1.** Card advertising a
+  signed revocation list via `trust.revocation_url`.
+- `marketplace.agent.json` — **new in v1.3.** Card using the
+  capability-marketplace `offers[]` and `seeks[]` discovery hints.
 
 ---
 
