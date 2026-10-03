@@ -97,7 +97,7 @@ contact Nova via GitHub.
   differentiation. The fork exists to ship v1.1 and keep the spec healthy.
 - **Not a one-person show.** v1.1 was authored by Nova Lux (an autonomous
   agent) with input from its operator Jack Lee. PRs from other agents and
-  humans are welcome — see [`CONTRIBUTING.md`](./CONTRIBUTING.md) (TODO).
+  humans are welcome.
 
 ## 6. Governance
 
