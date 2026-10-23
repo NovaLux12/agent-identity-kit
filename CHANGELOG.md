@@ -44,6 +44,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [1.2.1] — 2026-07-22
 
 ### Added
 
@@ -107,40 +108,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-## [1.1.1] — 2026-07-16
-
-### Changed
-
-- **`description_i18n` validation tightened.** The v1.1 schema now
-  enforces what SPEC §3.2.4 has always said: keys MUST be valid
-  BCP-47 language tags (RFC 5646), and values MUST be non-empty strings.
-  Previously the schema accepted any object — `description_i18n:
-  { "english": "" }` validated against v1.1 even though it's
-  nonsense. The schema now rejects it.
-  - Keys: pattern `^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$` (BCP-47-ish,
-    permissive — see SPEC §3.2.4 for the rationale).
-  - Values: added `minLength: 1` (no empty strings).
-  - **Backward compatible** for cards that follow the SPEC text. The
-    two real-world examples shipped with v1.1 (`examples/minimal.agent.json`
-    has no `description_i18n`; `examples/autonomous-nova-lux.agent.json`
-    has `en-GB` and `de`) both still validate.
-- **`SPEC.md` §3.2.4 expanded** to document the precise validation
-  rules, the permissive-vs-strict tradeoff, and the canonical
-  `description` fallback.
-
-### Added
-
-- **Three new conformance tests** (`tests/conformance.test.js`):
-  - `description_i18n accepts valid BCP-47 keys` — `en`, `en-GB`,
-    `de`, `zh-Hans`, `zh-Hans-CN`, `pt-BR`.
-  - `description_i18n rejects non-BCP-47 keys` — `english`, `EN`
-    (case-sensitive primary subtag), `en_GB` (underscore separator),
-    empty key.
-  - `description_i18n rejects empty-string values` — `""`, `"   "`
-    trimmed-whitespace, value with only whitespace.
-
----
-
 ## [1.2.0] — 2026-07-19
 
 ### Added
@@ -196,6 +163,40 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - DID/Verifiable Credentials bridge (interoperability with W3C identity)
 - Revocation registry protocol (`trust.revocation_url` + signed revocation list fetch) — tracked in [#5](https://github.com/NovaLux12/agent-identity-kit/issues/5)
 - Capability marketplace semantics (advertise / negotiate / settle) — tracked in [#6](https://github.com/NovaLux12/agent-identity-kit/issues/6)
+
+---
+
+## [1.1.1] — 2026-07-16
+
+### Changed
+
+- **`description_i18n` validation tightened.** The v1.1 schema now
+  enforces what SPEC §3.2.4 has always said: keys MUST be valid
+  BCP-47 language tags (RFC 5646), and values MUST be non-empty strings.
+  Previously the schema accepted any object — `description_i18n:
+  { "english": "" }` validated against v1.1 even though it's
+  nonsense. The schema now rejects it.
+  - Keys: pattern `^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$` (BCP-47-ish,
+    permissive — see SPEC §3.2.4 for the rationale).
+  - Values: added `minLength: 1` (no empty strings).
+  - **Backward compatible** for cards that follow the SPEC text. The
+    two real-world examples shipped with v1.1 (`examples/minimal.agent.json`
+    has no `description_i18n`; `examples/autonomous-nova-lux.agent.json`
+    has `en-GB` and `de`) both still validate.
+- **`SPEC.md` §3.2.4 expanded** to document the precise validation
+  rules, the permissive-vs-strict tradeoff, and the canonical
+  `description` fallback.
+
+### Added
+
+- **Three new conformance tests** (`tests/conformance.test.js`):
+  - `description_i18n accepts valid BCP-47 keys` — `en`, `en-GB`,
+    `de`, `zh-Hans`, `zh-Hans-CN`, `pt-BR`.
+  - `description_i18n rejects non-BCP-47 keys` — `english`, `EN`
+    (case-sensitive primary subtag), `en_GB` (underscore separator),
+    empty key.
+  - `description_i18n rejects empty-string values` — `""`, `"   "`
+    trimmed-whitespace, value with only whitespace.
 
 ---
 
